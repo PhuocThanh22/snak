@@ -41,7 +41,7 @@
   var canvas = document.getElementById('game');
   if (!canvas) return;
 
-  var ctx = canvas.getContext('2d');
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   var scoreEl = document.getElementById('score');
   var levelEl = document.getElementById('level');
@@ -51,6 +51,9 @@
   var restartBtn = document.getElementById('restart');
   var menuBtn = document.getElementById('menuBtn');
   var muteBtn = document.getElementById('mute');
+  var bgmBtn = document.getElementById('bgmBtn');
+  var bgmAudioEl = document.getElementById('bgm');
+  var padEl = document.getElementById('pad');
 
   // ---- Kích thước vẽ (hỗ trợ màn hình mật độ cao) ---------------------------
 
@@ -149,6 +152,23 @@
     var m = Audio ? Audio.isMuted() : false;
     muteBtn.textContent = m ? '🔇 Đang tắt tiếng' : '🔊 Âm thanh';
     muteBtn.setAttribute('aria-pressed', m ? 'true' : 'false');
+  }
+
+  function syncBgmButton() {
+    var on = Audio && typeof Audio.isBgmEnabled === 'function' ? Audio.isBgmEnabled() : false;
+    if (bgmBtn) {
+      bgmBtn.textContent = on ? '🎵 BGM: BẬT' : '🎵 BGM: TẮT';
+      bgmBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    var padBgm = document.querySelector('[data-action="bgm"]');
+    if (padBgm) padBgm.classList.toggle('is-off', !on);
+  }
+
+  function toggleBgm() {
+    if (!Audio || typeof Audio.toggleBgm !== 'function') return;
+    Audio.initAudio();
+    Audio.toggleBgm();
+    syncBgmButton();
   }
 
   // ---- Vòng đời game --------------------------------------------------------
@@ -372,58 +392,136 @@
     ctx.restore();
   }
 
-  /** Vị trí hiển thị của từng đốt rắn, nội suy giữa prev và cur theo t. */
-  function snakePoints(t) {
-    var snake = state.snake;
-    var n = snake.length;
-    var pts = [];
-    for (var i = 0; i < n; i++) {
-      var cur = snake[i];
-      var prev = prevSnake[i];
-      if (!prev) prev = prevSnake[prevSnake.length - 1] || cur;
-
-      var px;
-      var py;
-      // Bỏ nội suy khi toạ độ nhảy > 1 ô (wrap-around) để tránh vệt dài.
-      if (Math.abs(cur.x - prev.x) <= 1 && Math.abs(cur.y - prev.y) <= 1) {
-        px = (prev.x + (cur.x - prev.x) * t) * CELL + CELL / 2;
-        py = (prev.y + (cur.y - prev.y) * t) * CELL + CELL / 2;
-      } else {
-        px = cur.x * CELL + CELL / 2;
-        py = cur.y * CELL + CELL / 2;
-      }
-      pts.push({ x: px, y: py });
-    }
-    return pts;
+  /** Khoảng cách có dấu NHỎ NHẤT giữa a và b trên vòng tròn kích thước `size`. */
+  function wrapDelta(a, b, size) {
+    var d = a - b;
+    var half = size / 2;
+    if (d > half) d -= size;
+    else if (d < -half) d += size;
+    return d;
   }
 
-  function strokePath(pts) {
-    if (pts.length === 0) return;
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.stroke();
+  /**
+   * Dựng đường đi LIỀN MẠCH của rắn bằng cách "trải phẳng" (unwrap) toạ độ
+   * khi đi xuyên vách, kèm danh sách độ dời (tiling) cần vẽ thêm để phần tràn
+   * ra ngoài mép xuất hiện ở mép đối diện.
+   *
+   * Nhờ trải phẳng, hai đốt liên tiếp LUÔN cách nhau đúng 1 ô (kể cả khi wrap)
+   * → không bao giờ sinh "vệt ngang màn hình".
+   */
+  function buildSnakePath(t) {
+    var snake = state.snake;
+    var n = snake.length;
+    var cols = state.cols || GRID;
+    var rows = state.rows || GRID;
+
+    // 1) Trải phẳng toạ độ các đốt (mỗi bước lệch đúng 1 ô trên hình xuyến).
+    var cx = new Array(n);
+    var cy = new Array(n);
+    cx[0] = snake[0].x;
+    cy[0] = snake[0].y;
+    for (var i = 1; i < n; i++) {
+      cx[i] = cx[i - 1] + wrapDelta(snake[i].x, snake[i - 1].x, cols);
+      cy[i] = cy[i - 1] + wrapDelta(snake[i].y, snake[i - 1].y, rows);
+    }
+
+    // 2) Nội suy mượt về vị trí của bước TRƯỚC (cũng trải phẳng như trên).
+    var pts = [];
+    var minX = Infinity;
+    var maxX = -Infinity;
+    var minY = Infinity;
+    var maxY = -Infinity;
+    for (var j = 0; j < n; j++) {
+      var cell = snake[j];
+      var prev = prevSnake[j];
+      if (!prev) prev = prevSnake[prevSnake.length - 1] || cell;
+
+      var dpx = wrapDelta(prev.x, cell.x, cols);
+      var dpy = wrapDelta(prev.y, cell.y, rows);
+      var gx = cx[j] + dpx * (1 - t);
+      var gy = cy[j] + dpy * (1 - t);
+
+      var px = (gx + 0.5) * CELL;
+      var py = (gy + 0.5) * CELL;
+      pts.push({ x: px, y: py });
+
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (py < minY) minY = py;
+      if (py > maxY) maxY = py;
+    }
+
+    // 3) Độ dời cần vẽ thêm để nối liền hai mép (chỉ khi path tràn ra ngoài).
+    var oxs = [0];
+    var oys = [0];
+    if (minX < 0) oxs.push(LOGICAL);
+    if (maxX > LOGICAL) oxs.push(-LOGICAL);
+    if (minY < 0) oys.push(LOGICAL);
+    if (maxY > LOGICAL) oys.push(-LOGICAL);
+
+    return { pts: pts, oxs: oxs, oys: oys };
+  }
+
+  /**
+   * Ngắt đường vẽ thành nhiều đoạn rời nếu phát hiện 2 điểm liên tiếp cách
+   * nhau > `maxGap` (lưới an toàn: đảm bảo TUYỆT ĐỐI không vẽ đường băng
+   * ngang màn hình dù có bước nhảy xuyên biên bất thường).
+   */
+  function splitPath(pts, maxGap) {
+    var groups = [[pts[0]]];
+    for (var i = 1; i < pts.length; i++) {
+      var dx = Math.abs(pts[i].x - pts[i - 1].x);
+      var dy = Math.abs(pts[i].y - pts[i - 1].y);
+      if (dx > maxGap || dy > maxGap) groups.push([]);
+      groups[groups.length - 1].push(pts[i]);
+    }
+    return groups;
+  }
+
+  /** Stroke từng đoạn rời (mỗi đoạn 1 beginPath). */
+  function strokeGroups(groups) {
+    for (var g = 0; g < groups.length; g++) {
+      var pts = groups[g];
+      if (pts.length === 0) continue;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    }
   }
 
   function drawSnake(t, c) {
-    var pts = snakePoints(t);
-    var n = pts.length;
-    if (n === 0) return;
+    if (state.snake.length === 0) return;
+    var path = buildSnakePath(t);
+    var pts = path.pts;
+    if (pts.length === 0) return;
 
-    // Viền glow bao quanh thân (giúp lấp khe giữa các đốt thon).
+    var groups = splitPath(pts, CELL * 1.5);
+
+    // Vẽ ở bản chính + các bản dời (nối liền qua mép) khi có wrap.
+    for (var a = 0; a < path.oxs.length; a++) {
+      for (var b = 0; b < path.oys.length; b++) {
+        drawSnakeAt(pts, groups, path.oxs[a], path.oys[b], c);
+      }
+    }
+  }
+
+  function drawSnakeAt(pts, groups, ox, oy, c) {
     ctx.save();
+    ctx.translate(ox, oy);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
+
+    // Viền glow bao quanh thân.
     ctx.shadowBlur = 16;
     ctx.shadowColor = c.accent;
     ctx.strokeStyle = c.accent2;
     ctx.lineWidth = CELL * 0.82;
-    strokePath(pts);
-    ctx.restore();
+    strokeGroups(groups);
 
     // Thân: các đốt thon dần về phía đuôi.
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    var n = pts.length;
+    ctx.shadowBlur = 0;
     for (var i = n - 1; i >= 1; i--) {
       var ratio = n > 1 ? i / (n - 1) : 0;
       var r = CELL * (0.46 - 0.20 * ratio);
@@ -434,6 +532,7 @@
     }
 
     drawHead(pts[0], c);
+    ctx.restore();
   }
 
   function drawHead(pt, c) {
@@ -536,9 +635,130 @@
     }
   }
 
-  /** Khởi tạo AudioContext ở tương tác đầu tiên (tránh cảnh báo autoplay). */
+  // ---- Điều khiển cảm ứng kiểu máy chơi cầm tay -----------------------------
+
+  var PAD_DIRS = {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+
+  function vibrate() {
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(15);
+      }
+    } catch (e) {
+      /* bỏ qua */
+    }
+  }
+
+  function pulse(el) {
+    if (!el) return;
+    el.classList.add('is-active');
+    el.__pulseTimer = setTimeout(function () {
+      el.classList.remove('is-active');
+    }, 120);
+  }
+
+  function pressDirection(dir) {
+    if (inMenu) return;
+    Logic.setDirection(state, dir);
+    if (Audio) Audio.playMove();
+  }
+
+  function pressAction(action) {
+    if (action === 'pause') {
+      if (inMenu) return;
+      if (state.gameOver) restart();
+      else togglePause();
+      return;
+    }
+    if (action === 'mute') {
+      if (Audio) {
+        Audio.initAudio();
+        Audio.toggleMute();
+      }
+      syncMuteButton();
+      return;
+    }
+    if (action === 'bgm') {
+      toggleBgm();
+      return;
+    }
+    if (action === 'level') {
+      showMenu();
+      return;
+    }
+  }
+
+  /**
+   * Gắn sự kiện cho nút máy chơi: ưu tiên `touchstart` (preventDefault để
+   * tránh delay 300ms / cuộn trang / zoom), kèm `mousedown` cho desktop và
+   * `click` cho bàn phím. Có hiệu ứng lún + `navigator.vibrate(15)`.
+   */
+  function bindPadButton(el, handler) {
+    var lastTouch = 0;
+
+    function fire() {
+      pulse(el);
+      vibrate();
+      handler();
+    }
+
+    el.addEventListener(
+      'touchstart',
+      function (e) {
+        lastTouch = Date.now();
+        if (e.cancelable) e.preventDefault();
+        fire();
+      },
+      { passive: false }
+    );
+
+    el.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      if (Date.now() - lastTouch < 600) return; // vừa xử lý qua cảm ứng
+      e.preventDefault();
+      fire();
+    });
+
+    // Bàn phím (Enter/Space) tạo click có detail === 0.
+    el.addEventListener('click', function (e) {
+      if (e.detail !== 0) return;
+      if (Date.now() - lastTouch < 600) return;
+      fire();
+    });
+  }
+
+  function bindPad() {
+    if (!padEl) return;
+
+    var dirBtns = padEl.querySelectorAll('[data-dir]');
+    for (var di = 0; di < dirBtns.length; di++) {
+      (function (btn) {
+        var dir = PAD_DIRS[btn.getAttribute('data-dir')];
+        if (dir) bindPadButton(btn, function () { pressDirection(dir); });
+      })(dirBtns[di]);
+    }
+
+    var actBtns = padEl.querySelectorAll('[data-action]');
+    for (var ai = 0; ai < actBtns.length; ai++) {
+      (function (btn) {
+        var action = btn.getAttribute('data-action');
+        bindPadButton(btn, function () { pressAction(action); });
+      })(actBtns[ai]);
+    }
+  }
+
+  // ---- Khởi tạo AudioContext + BGM ở tương tác đầu tiên ---------------------
+
   function firstInteraction() {
-    if (Audio) Audio.initAudio();
+    if (Audio) {
+      Audio.initAudio();
+      if (typeof Audio.startBgm === 'function') Audio.startBgm();
+    }
     document.removeEventListener('pointerdown', firstInteraction);
     document.removeEventListener('keydown', firstInteraction);
   }
@@ -549,14 +769,27 @@
   });
   document.addEventListener('pointerdown', firstInteraction);
 
+  if (bgmAudioEl && Audio && typeof Audio.attachBgmElement === 'function') {
+    Audio.attachBgmElement(bgmAudioEl);
+  }
+
   if (restartBtn) restartBtn.addEventListener('click', restart);
   if (menuBtn) menuBtn.addEventListener('click', showMenu);
 
   if (muteBtn) {
     muteBtn.addEventListener('click', function () {
-      if (Audio) Audio.initAudio();
-      if (Audio) Audio.toggleMute();
+      if (Audio) {
+        Audio.initAudio();
+        Audio.toggleMute();
+      }
       syncMuteButton();
+    });
+  }
+
+  if (bgmBtn) {
+    bgmBtn.addEventListener('click', function () {
+      if (Audio) Audio.initAudio();
+      toggleBgm();
     });
   }
 
@@ -565,7 +798,10 @@
     for (var i = 0; i < levelButtons.length; i++) {
       (function (btn) {
         btn.addEventListener('click', function () {
-          if (Audio) Audio.initAudio();
+          if (Audio) {
+            Audio.initAudio();
+            if (typeof Audio.startBgm === 'function') Audio.startBgm();
+          }
           startGame(parseInt(btn.getAttribute('data-level'), 10));
         });
       })(levelButtons[i]);
@@ -574,7 +810,9 @@
 
   // ---- Khởi động ------------------------------------------------------------
 
+  bindPad();
   syncMuteButton();
+  syncBgmButton();
   showMenu();
   requestFrame(frame);
 })();

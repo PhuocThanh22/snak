@@ -16,7 +16,10 @@
     <main class="game">
       <header class="topbar">
         <h1 class="title">NEON <span>SNAKE</span></h1>
-        <button id="mute" class="btn btn--ghost" type="button" aria-pressed="false">🔊 Âm thanh</button>
+        <div class="topbar__btns">
+          <button id="bgmBtn" class="btn btn--ghost" type="button" aria-pressed="true">🎵 BGM: BẬT</button>
+          <button id="mute" class="btn btn--ghost" type="button" aria-pressed="false">🔊 Âm thanh</button>
+        </div>
       </header>
 
       <div class="hud">
@@ -67,7 +70,25 @@
           Tạm dừng: <kbd>Space</kbd> &nbsp;•&nbsp; Chơi lại: <kbd>R</kbd>
         </p>
       </div>
+
+      <div class="pad" id="pad" aria-label="Điều khiển máy chơi game">
+        <div class="dpad">
+          <button class="dbtn dbtn--up" data-dir="up" type="button" aria-label="Lên">▲</button>
+          <button class="dbtn dbtn--left" data-dir="left" type="button" aria-label="Trái">◀</button>
+          <button class="dbtn dbtn--right" data-dir="right" type="button" aria-label="Phải">▶</button>
+          <button class="dbtn dbtn--down" data-dir="down" type="button" aria-label="Xuống">▼</button>
+          <span class="dpad__hub" aria-hidden="true"></span>
+        </div>
+        <div class="funcs">
+          <button class="func" data-action="pause" type="button">START<span>Pause</span></button>
+          <button class="func func--ghost" data-action="mute" type="button">🔊<span>Mute</span></button>
+          <button class="func func--ghost" data-action="bgm" type="button">🎵<span>BGM</span></button>
+          <button class="func func--ghost" data-action="level" type="button">🎮<span>Đổi màn</span></button>
+        </div>
+      </div>
     </main>
+
+    <audio id="bgm" loop preload="none"></audio>
 
     <!-- Thứ tự nạp: levels -> logic -> particles -> audio -> game -->
     <script src="snake/levels.js"></script>

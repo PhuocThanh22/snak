@@ -584,4 +584,130 @@ test('particles.js: draw chạy được với canvas context giả', () => {
   assert.ok(calls.arcs >= 5, 'phải vẽ ít nhất 1 arc cho mỗi hạt');
 });
 
+// ---------------------------------------------------------------------------
+// 12) SPRINT 3 — hồi quy lỗi "rắn kéo dài / vệt ngang" khi đi xuyên vách (wrap)
+// ---------------------------------------------------------------------------
+
+test('wrap: đi xuyên cả 4 cạnh giữ nguyên độ dài rắn (không cộng dồn đốt)', () => {
+  const s = Logic.createGame({ wrap: true });
+  s.food = null; // không ăn → độ dài phải giữ nguyên
+  const len0 = s.snake.length;
+
+  // Phải: 19 -> 0
+  s.snake = [{ x: 19, y: 10 }, { x: 18, y: 10 }, { x: 17, y: 10 }];
+  s.dir = { x: 1, y: 0 };
+  s.lastMoveDir = { x: 1, y: 0 };
+  Logic.step(s);
+  assert.strictEqual(s.snake[0].x, 0, 'wrap phải sang trái');
+  assert.strictEqual(s.snake.length, len0, 'wrap KHÔNG được thêm đốt');
+
+  // Trái: 0 -> 19
+  s.snake = [{ x: 0, y: 10 }, { x: 1, y: 10 }, { x: 2, y: 10 }];
+  s.dir = { x: -1, y: 0 };
+  s.lastMoveDir = { x: -1, y: 0 };
+  Logic.step(s);
+  assert.strictEqual(s.snake[0].x, 19, 'wrap trái sang phải');
+  assert.strictEqual(s.snake.length, len0);
+
+  // Trên: 0 -> 19
+  s.snake = [{ x: 10, y: 0 }, { x: 10, y: 1 }, { x: 10, y: 2 }];
+  s.dir = { x: 0, y: -1 };
+  s.lastMoveDir = { x: 0, y: -1 };
+  Logic.step(s);
+  assert.strictEqual(s.snake[0].y, 19, 'wrap trên xuống dưới');
+  assert.strictEqual(s.snake.length, len0);
+
+  // Dưới: 19 -> 0
+  s.snake = [{ x: 10, y: 19 }, { x: 10, y: 18 }, { x: 10, y: 17 }];
+  s.dir = { x: 0, y: 1 };
+  s.lastMoveDir = { x: 0, y: 1 };
+  Logic.step(s);
+  assert.strictEqual(s.snake[0].y, 0, 'wrap dưới lên trên');
+  assert.strictEqual(s.snake.length, len0);
+});
+
+test('wrap: nhiều bước liên tiếp giữ nguyên độ dài (không kéo dài rắn)', () => {
+  const s = Logic.createGame({ wrap: true });
+  s.food = null;
+  s.snake = [
+    { x: 15, y: 3 }, { x: 14, y: 3 }, { x: 13, y: 3 }, { x: 12, y: 3 }, { x: 11, y: 3 }
+  ];
+  s.dir = { x: 1, y: 0 };
+  s.lastMoveDir = { x: 1, y: 0 };
+
+  const len0 = s.snake.length;
+  for (let i = 0; i < 60; i++) {
+    Logic.step(s);
+    assert.strictEqual(s.gameOver, false, 'không được chết ở bước ' + i);
+    assert.strictEqual(s.snake.length, len0, 'độ dài phải giữ nguyên ở bước ' + i);
+  }
+});
+
+test('wrap: các đốt liên tiếp luôn kề nhau trên hình xuyến (không nhảy > 1 ô)', () => {
+  const s = Logic.createGame({ wrap: true });
+  s.food = null;
+  s.snake = [{ x: 19, y: 5 }, { x: 18, y: 5 }, { x: 17, y: 5 }, { x: 16, y: 5 }];
+  s.dir = { x: 1, y: 0 };
+  s.lastMoveDir = { x: 1, y: 0 };
+
+  const cols = s.cols;
+  const rows = s.rows;
+
+  for (let i = 0; i < 80; i++) {
+    Logic.step(s);
+    assert.strictEqual(s.gameOver, false, 'không được chết ở bước ' + i);
+
+    for (let k = 1; k < s.snake.length; k++) {
+      const a = s.snake[k - 1];
+      const b = s.snake[k];
+      // Khoảng cách "vòng" nhỏ nhất (wrap là hợp lệ, không tính là nhảy).
+      const dx = Math.min(Math.abs(a.x - b.x), cols - Math.abs(a.x - b.x));
+      const dy = Math.min(Math.abs(a.y - b.y), rows - Math.abs(a.y - b.y));
+      assert.strictEqual(
+        dx + dy,
+        1,
+        'đốt ' + (k - 1) + '->' + k + ' phải kề nhau (bước ' + i + ')'
+      );
+    }
+  }
+});
+
+test('wrap: ăn mồi ở bờ đối diện tăng đúng 1 đốt', () => {
+  const s = Logic.createGame({ wrap: true });
+  s.snake = [{ x: 19, y: 5 }, { x: 18, y: 5 }, { x: 17, y: 5 }];
+  s.dir = { x: 1, y: 0 };
+  s.lastMoveDir = { x: 1, y: 0 };
+  s.food = { x: 0, y: 5 }; // mồi ngay bờ đối diện
+  const len0 = s.snake.length;
+
+  Logic.step(s);
+
+  assert.strictEqual(s.gameOver, false);
+  assert.strictEqual(s.snake[0].x, 0);
+  assert.strictEqual(s.snake.length, len0 + 1, 'ăn mồi phải dài thêm ĐÚNG 1 đốt');
+  assert.strictEqual(s.score, 1);
+});
+
+// ---------------------------------------------------------------------------
+// 13) SPRINT 3 — API nhạc nền (BGM) trong audio.js
+// ---------------------------------------------------------------------------
+
+test('audio.js (Sprint 3): API BGM đầy đủ và an toàn ở Node', () => {
+  const fns = ['attachBgmElement', 'startBgm', 'stopBgm', 'toggleBgm', 'setBgmEnabled', 'isBgmEnabled'];
+  for (const name of fns) {
+    assert.strictEqual(typeof Audio[name], 'function', 'thiếu hàm ' + name);
+  }
+
+  assert.strictEqual(typeof Audio.isBgmEnabled(), 'boolean');
+
+  // Không có AudioContext / localStorage trong Node → phải là no-op an toàn.
+  assert.doesNotThrow(() => {
+    Audio.attachBgmElement(null);
+    Audio.startBgm();
+    Audio.setBgmEnabled(true);
+    Audio.toggleBgm();
+    Audio.stopBgm();
+  });
+});
+
 run();
