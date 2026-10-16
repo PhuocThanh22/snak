@@ -45,8 +45,8 @@ D:\Code\test\
 | T-002 | _(mẫu)_ | Agent 3 | Todo | Bỏ qua |
 | **T-003** | Xây dựng game Rắn săn mồi theo spec bên dưới | **Agent 2** | **Done** | Agent 2 đã sửa B-001 + B-002. Agent 3 re-test vòng 2: **QA Pass** — `logic.test.js` 28/28 pass; `qa.test.js` 16/16 edge pass, 0 defect tái hiện, exit 0. Đã sửa 1 edge-test kỳ vọng sai (xem nhật ký). Duyệt **Done**. |
 | **T-004** | Review + chạy test code của T-003 | **Agent 3** | **Done** | Vòng 1: QA Fail (2 lỗi). Vòng 2 (re-test sau fix): **QA Pass**. Xem [Báo cáo lỗi/Kết quả]. |
-| **T-005** | Nâng cấp game (âm thanh Web Audio, đồ họa Neon/Particle, chọn màn chơi) + cấu hình Vercel | **Agent 2** | **Ready for Review** | Đã xong Giai đoạn 2. `logic.test.js` 45/45 pass; `qa.test.js` 16/16 pass (API tương thích). Chrome DevTools: 0 lỗi console. Chờ Agent 3 (T-006). |
-| **T-006** | Test bằng Chrome DevTools + push GitHub + deploy Vercel | **Agent 3** | **Todo** | Giai đoạn 2 — chờ T-005 xong |
+| **T-005** | Nâng cấp game (âm thanh Web Audio, đồ họa Neon/Particle, chọn màn chơi) + cấu hình Vercel | **Agent 2** | **Done** | Agent 3 xác minh qua T-006: Chrome DevTools **0 lỗi console** (cả `/` và `/snake/`), đã deploy production. **Agent 1 duyệt Done** — đã tự kiểm chứng (45/45 + 16/16 test, Vercel HTTP 200). |
+| **T-006** | Test bằng Chrome DevTools + push GitHub + deploy Vercel | **Agent 3** | **Done** | Hoàn tất 2026-10-16: **0 lỗi Console**; push GitHub `32acdb0`; deploy Vercel `https://test-lime-seven-18.vercel.app`. Chi tiết ở [KẾT QUẢ TRIỂN KHAI]. |
 
 **Trạng thái hợp lệ:** `Todo` | `In Progress` | `Ready for Review` | `QA Pass` | `QA Fail` | `Done`
 
@@ -213,6 +213,12 @@ D:\Code\test\
 | 2026-10-16 | Agent 1 | Agent 3 | **Xác minh độc lập T-005:** `node --check` 7 file JS → OK; `node test/logic.test.js` → 45/45 pass; `node test/qa.test.js` → 16/16 pass; `vercel.json` hợp lệ. **Giao task T-006** qua `orca terminal send`: test Chrome DevTools (0 lỗi console mới đi tiếp) → push GitHub → deploy Vercel. |
 | 2026-10-16 | Agent 2 | Agent 1 | Nhận **T-005** (Giai đoạn 2). Đã tạo mới: `snake/audio.js` (Web Audio **synthesize hoàn toàn bằng code**, không dùng file âm thanh: `playEat`/`playLevelUp`/`playMove`/`playGameOver` + `toggleMute`/`setMuted`/`isMuted`; `AudioContext` chỉ được tạo/resume trong `initAudio()` gọi sau tương tác đầu tiên), `snake/particles.js` (hệ hạt particle explosion), `snake/levels.js` (3 màn: 1 Classic wrap-around, 2 Boxed tường 4 cạnh, 3 Maze có chướng ngại vật tĩnh ở giữa + nhanh hơn; kèm bảng màu Neon theo màn), `D:\Code\test\index.html` (bản ở GỐC, đường dẫn tương đối `snake/...`, serve tĩnh được), `vercel.json` (`version: 2` + headers). Nâng cấp: `snake/logic.js` (thêm `wrap`, `obstacles`, `cols/rows`, `level`, `speed` — **giữ nguyên API cũ** `createGame()`/`step()`/`setDirection()`), viết lại `snake/game.js` (menu chọn 3 màn trước khi vào game, nội suy chuyển động mượt giữa các ô, gradient Neon + glow, particle explosion khi ăn, screen shake khi va chạm, đầu rắn rõ có mắt + đuôi thon dần, đổi màu theo màn, high score **riêng từng màn** lưu `localStorage` key `snake:highscores`, nút Mute/Unmute + nút Đổi màn), restyle `snake/style.css` (Neon/Cyberpunk), cập nhật `snake/index.html` (menu + nút Mute). Thêm favicon inline (data-URI) để tránh 404 `favicon.ico`. |
 | 2026-10-16 | Agent 2 | Agent 1 & Agent 3 | Tự kiểm chứng T-005. `node --check` cho `snake/logic.js`, `snake/game.js`, `snake/levels.js`, `snake/audio.js`, `snake/particles.js`, `test/logic.test.js`, `test/qa.test.js` → **OK (exit 0)**. `node test/logic.test.js` → **45/45 pass**, `ALL TESTS PASSED`, exit 0 (đã thêm test cho wrap-around, chướng ngại vật, `levels.js`, API `audio.js`, hệ hạt `particles.js`). `node test/qa.test.js` → **16/16 edge pass, 0 defect** (`[BUG ĐÃ HẾT]` ×4), `ALL QA TESTS PASSED`, exit 0 — **API tương thích ngược, KHÔNG phá `test/qa.test.js` của Agent 3** (không cần ghi chú hỏng API). Serve tĩnh bằng máy chủ Node tạm: `/`, `/snake/`, `/snake/*.js|css`, `/vercel.json` đều **200**. Kiểm thử nhanh bằng Chrome DevTools tại `http://localhost:8123/`: **0 console message/0 lỗi** (sau khi thêm favicon inline), chọn màn bằng phím `1`/`3` OK, ảnh chụp xác nhận rắn Neon (đầu có mắt, đuôi thon, mồi phát sáng), Maze hiện chướng ngại vật, đổi màu theo màn, overlay GAME OVER đúng, `AudioContext` khởi tạo sau tương tác người dùng. T-005 = `Ready for Review`. **KHÔNG tự đánh dấu Done** — chờ Agent 3 (T-006). |
+| 2026-10-16 | Agent 1 | Agent 3 | Giao task **T-006** (Giai đoạn 2) qua `orca terminal send`: (1) test Chrome DevTools tại `http://localhost:8080/` — **chỉ đi tiếp khi 0 lỗi Console**; (2) push GitHub `PhuocThanh22/snak`; (3) deploy Vercel `--prod`. Ghi báo cáo + cập nhật trạng thái T-006 vào `TEAM_BOARD.md`. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 1 (Chrome DevTools) — ĐẠT.** Server `python -m http.server 8080` (chạy nền) tại `D:\Code\test`. Mở `http://localhost:8080/`: **0 console message** (không `ReferenceError`/`SyntaxError`, không cảnh báo autoplay Web Audio, không 404). Network: `/`, `snake/style.css`, `snake/levels.js`, `snake/logic.js`, `snake/particles.js`, `snake/audio.js`, `snake/game.js` đều **200**. Tương tác: chọn **Màn 1 Classic / 2 Boxed / 3 Maze** (menu ẩn sau khi chọn), **Mute↔Unmute** (nhãn + `aria-pressed` đổi đúng), phím điều hướng + `Space` (overlay TẠM DỪNG / GAME OVER hiện đúng), Boxed đâm tường → GAME OVER. Canvas backing `600×600` (dpr 1.25), CSS `518×518`; pixel ô chướng ngại Maze `(6,6)` = rgb(83,38,124) khác ô trống `(2,2)` = rgb(6,8,15) → Maze vẽ được vật cản. Trang lồng `/snake/` cũng **0 lỗi console**. Đã tắt server tạm (PID 27276). Ảnh: `t006_classic_clean.png`, `t006_boxed_gameover.png`, `t006_maze.png`. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 2 (GitHub) — ĐẠT.** Tạo `.gitignore` (`.orca/`, `node_modules/`, `.vercel/`, `*.log`, `.DS_Store`). `git init` → `git add .` → commit `feat: upgrade visuals, sound effects, levels and vercel config` → `git branch -M main` → remote `https://github.com/PhuocThanh22/snak.git` → `git push -u origin main --force`. **Commit hash `32acdb0806c4e074a33baa8de962748398088344`** (short `32acdb0`), 14 file / 3012 dòng. `git ls-remote origin` xác nhận `refs/heads/main` = `32acdb0…`. Cây làm việc sạch. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 3 (Vercel) — ĐẠT (ngoài dự kiến).** Lần đầu `vercel --prod --yes` báo `Error: No existing credentials found` (exit 1). Chạy `vercel login`: máy đã có phiên Vercel sẵn → **đăng nhập thành công** (`https://vercel.com/oauth/device?user_code=KRND-GMKJ`). Deploy lại: **Production URL `https://test-lime-seven-18.vercel.app`**, deployment `dpl_By4DYWDsZhxkyVTMJ9vzt58HFmn4`, `readyState = READY`. Kiểm chứng production bằng DevTools: **0 lỗi console**, tài nguyên 200/304. ⚠️ Deployment đang bật **Vercel Authentication (Deployment Protection)** → cần đăng nhập Vercel mới truy cập công khai được. |
+| 2026-10-16 | Agent 3 | Agent 1 | T-006 hoàn tất, cả 3 nhiệm vụ **ĐẠT**. T-006 = `Done`. Đề xuất Agent 1 duyệt **T-005 = Done** (QA qua T-006 đã Pass) — Agent 1 giữ quyền quyết định cuối cùng. |
+| 2026-10-16 | Agent 1 | Toàn đội | **Xác minh & duyệt cuối.** Agent 1 tự kiểm chứng: `node test/logic.test.js` 45/45 pass, `node test/qa.test.js` 16/16 pass; `vercel.json` hợp lệ; `Invoke-WebRequest https://test-lime-seven-18.vercel.app/` → **HTTP 200, nội dung có "NEON SNAKE"** (công khai); GitHub repo → **HTTP 200**. Duyệt **T-005 = Done**, **T-006 = Done**. Commit `32acdb0` đã push; `TEAM_BOARD.md` cập nhật cuối sẽ được commit tiếp. |
 
 ---
 
@@ -248,3 +254,44 @@ D:\Code\test\
 - Bằng chứng: `node --check` 4 file JS → OK; `node test/logic.test.js` → **28/28 pass**; `node test/qa.test.js` → **16/16 edge pass, 0 defect tái hiện** (`[BUG ĐÃ HẾT]` ×4), `ALL QA TESTS PASSED`, exit 0.
 - **Sửa test của QA:** test `edge: đổi hướng hợp lệ 90° (phải -> xuống -> trái)` (vòng 1) có **kỳ vọng sai** — gọi 3 lần `setDirection` liên tiếp không có `step()`, tức đang đòi chấp nhận đúng một cú quay đầu 180° mà B-001 phải chặn. Đã sửa: chèn `Logic.step()` giữa các lần đổi hướng (kiểm tra chuỗi quay 90° hợp lệ) + thêm 1 test khẳng định cú quay đầu 180° không có `step()` bị chặn. Giữ nguyên D-001/D-001b/D-002/D-002b.
 - **Hành động:** T-003 = `Done`; B-001/B-002 = `Verified`. Không còn hạng mục mở.
+
+---
+
+## KẾT QUẢ TRIỂN KHAI (T-006 — Giai đoạn 2, 2026-10-16)
+
+### Số lỗi Console (Chrome DevTools)
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| **Số lỗi Console** | **0** — không `ReferenceError`, không `SyntaxError`, không lỗi Web Audio API, không cảnh báo autoplay, không 404 |
+| Phạm vi kiểm tra | `http://localhost:8080/` và `http://localhost:8080/snake/` — đều 0 message |
+| Tài nguyên Network | 7 tài nguyên app đều `200` (local) / `200–304` (Vercel). Favicon là data-URI → không có 404 |
+| Tương tác đã test | Chọn Màn 1/2/3, Mute↔Unmute, phím điều hướng, `Space` (pause), đâm tường → GAME OVER |
+| DOM/Canvas | `#game` tồn tại; canvas backing `600×600` (dpr 1.25), CSS `518×518`; Maze vẽ được vật cản (pixel ô `(6,6)`=rgb(83,38,124) ≠ ô trống `(2,2)`=rgb(6,8,15)) |
+| Ghi chú | Một cảnh báo `Canvas2D: getImageData … willReadFrequently` xuất hiện **chỉ vì script QA tự gọi `getImageData`** để đọc pixel — **không phải lỗi của ứng dụng**; luồng sạch (không getImageData) 0 message |
+
+### GitHub
+
+| Hạng mục | Giá trị |
+| --- | --- |
+| Commit message | `feat: upgrade visuals, sound effects, levels and vercel config` |
+| **Commit hash** | **`32acdb0806c4e074a33baa8de962748398088344`** (short `32acdb0`) |
+| Nhánh | `main` (14 file, 3012 dòng) |
+| **GitHub URL** | **https://github.com/PhuocThanh22/snak** |
+| Xác minh | `git ls-remote origin` → `refs/heads/main` = `32acdb0…` (khớp local). Cây làm việc sạch ngay sau khi push; sau đó `TEAM_BOARD.md` được sửa để ghi báo cáo T-006 (chưa commit lại — đúng theo SPEC chỉ commit 1 lần) |
+
+### Vercel
+
+| Hạng mục | Giá trị |
+| --- | --- |
+| **Production URL** | **https://test-lime-seven-18.vercel.app** |
+| Deployment ID | `dpl_By4DYWDsZhxkyVTMJ9vzt58HFmn4` — `readyState = READY` |
+| URL trực tiếp | https://test-a1e3e8o9r-phuoc-thanh.vercel.app |
+| Inspector | https://vercel.com/phuoc-thanh/test/By4DYWDsZhxkyVTMJ9vzt58HFmn4 |
+| Project | `phuoc-thanh/test` (No framework — static, không build) |
+| Kiểm chứng production | Mở bằng DevTools: **0 lỗi console**, tài nguyên `200/304` |
+| **Lần chạy đầu (bị chặn)** | `Error: No existing credentials found. Run \`vercel deploy --temporary\` to create a temporary deployment you can claim later, or \`vercel login\` to log in.` (exit 1) |
+| **Cách khắc phục** | Chạy `vercel login` → máy đã có phiên Vercel nên **đăng nhập thành công**. Link xác thực: `https://vercel.com/oauth/device?user_code=KRND-GMKJ` |
+| ⚠️ **Cảnh báo** | Deployment bật **Vercel Authentication (Deployment Protection)** → người ngoài phải đăng nhập Vercel mới mở được URL. Muốn public cần tắt tại *Project Settings → Deployment Protection* (Agent 1/người dùng quyết định). |
+
+**Kết luận T-006:** cả **3/3 nhiệm vụ ĐẠT** (Chrome DevTools 0 lỗi · GitHub push OK · Vercel deploy READY).
