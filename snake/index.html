@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Snake — Rắn săn mồi</title>
+    <meta name="description" content="Game Rắn săn mồi phong cách Neon/Cyberpunk — HTML/CSS/JS thuần." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23050a14'/%3E%3Ccircle cx='12' cy='16' r='5' fill='%2339ff14'/%3E%3Ccircle cx='21' cy='16' r='3' fill='%2300e5ff'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game">
+      <header class="topbar">
+        <h1 class="title">NEON <span>SNAKE</span></h1>
+        <button id="mute" class="btn btn--ghost" type="button" aria-pressed="false">🔊 Âm thanh</button>
+      </header>
+
+      <div class="hud">
+        <div class="hud__item">
+          <span class="hud__label">Điểm</span>
+          <span id="score" class="hud__value">0</span>
+        </div>
+        <div class="hud__item">
+          <span class="hud__label">Màn</span>
+          <span id="level" class="hud__value">—</span>
+        </div>
+        <div class="hud__item">
+          <span class="hud__label">Cao nhất</span>
+          <span id="best" class="hud__value">0</span>
+        </div>
+      </div>
+
+      <div class="board">
+        <canvas id="game" width="480" height="480"></canvas>
+        <div id="overlay" class="overlay" style="display: none"></div>
+
+        <div id="menu" class="menu">
+          <h2 class="menu__title">Chọn màn chơi</h2>
+          <div class="menu__grid">
+            <button class="lvl" type="button" data-level="1">
+              <span class="lvl__name">Classic</span>
+              <span class="lvl__desc">Đi xuyên biên</span>
+            </button>
+            <button class="lvl" type="button" data-level="2">
+              <span class="lvl__name">Boxed</span>
+              <span class="lvl__desc">Tường 4 cạnh</span>
+            </button>
+            <button class="lvl" type="button" data-level="3">
+              <span class="lvl__name">Maze</span>
+              <span class="lvl__desc">Chướng ngại vật</span>
+            </button>
+          </div>
+          <p class="menu__hint">Bấm <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> để chọn nhanh</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="restart" class="btn" type="button">Restart (R)</button>
+        <button id="menuBtn" class="btn btn--ghost" type="button">Đổi màn</button>
+        <p class="help">
+          Di chuyển: <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> hoặc
+          <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> &nbsp;•&nbsp;
+          Tạm dừng: <kbd>Space</kbd> &nbsp;•&nbsp; Chơi lại: <kbd>R</kbd>
+        </p>
+      </div>
+    </main>
+
+    <!-- Thứ tự nạp: levels -> logic -> particles -> audio -> game -->
+    <script src="levels.js"></script>
+    <script src="logic.js"></script>
+    <script src="particles.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
