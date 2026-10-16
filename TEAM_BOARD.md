@@ -47,8 +47,8 @@ D:\Code\test\
 | **T-004** | Review + chạy test code của T-003 | **Agent 3** | **Done** | Vòng 1: QA Fail (2 lỗi). Vòng 2 (re-test sau fix): **QA Pass**. Xem [Báo cáo lỗi/Kết quả]. |
 | **T-005** | Nâng cấp game (âm thanh Web Audio, đồ họa Neon/Particle, chọn màn chơi) + cấu hình Vercel | **Agent 2** | **Done** | Agent 3 xác minh qua T-006: Chrome DevTools **0 lỗi console** (cả `/` và `/snake/`), đã deploy production. **Agent 1 duyệt Done** — đã tự kiểm chứng (45/45 + 16/16 test, Vercel HTTP 200). |
 | **T-006** | Test bằng Chrome DevTools + push GitHub + deploy Vercel | **Agent 3** | **Done** | Hoàn tất 2026-10-16: **0 lỗi Console**; push GitHub `32acdb0`; deploy Vercel `https://test-lime-seven-18.vercel.app`. Chi tiết ở [KẾT QUẢ TRIỂN KHAI]. |
-| **T-007** | Sprint 3: sửa lỗi kéo dài khi wrap + nhạc nền Sugarsweet (fallback synth) + giao diện máy chơi cầm tay cho mobile | **Agent 2** | **Ready for Review** | Xong đủ 3 hạng mục. `logic.test.js` **50/50 pass**; `qa.test.js` 16/16 pass (không sửa). Wrap: **hết vệt ngang** (pixel canvas ≤ ~2.9 ô). BGM: file nếu có + **fallback synth**, nút BGM. Mobile: D-Pad + START/Pause/Mute/BGM/Đổi màn, không cuộn trang. Xem nhật ký 2026-10-16. |
-| **T-008** | Sprint 3: QA Chrome DevTools mobile (test wrap 4 cạnh, D-Pad, BGM) + push GitHub + redeploy Vercel | **Agent 3** | **Todo** | T-007 đã `Ready for Review` → sẵn sàng review/QA |
+| **T-007** | Sprint 3: sửa lỗi kéo dài khi wrap + nhạc nền Sugarsweet (fallback synth) + giao diện máy chơi cầm tay cho mobile | **Agent 2** | **Done** | Agent 3 xác minh độc lập qua T-008 (Chrome DevTools): **0 lỗi Console**; wrap **4 cạnh không còn vệt kéo dài** (run ngang/dọc ≤ **2.97 ô** = đúng bằng thân rắn; stress tất định 5000 bước × 2 trục = **250 wrap/trục, 0 sai chiều dài**); D-Pad iPhone 14 (390×844) **cả 4 nút đổi hướng đúng**; **BGM synth phát** (61 oscillator, `AudioContext.state=running`); `100dvh` **không cuộn**. `logic.test.js` 50/50; `qa.test.js` 16/16. **Agent 1 đã xác minh độc lập và duyệt `Done`** ngày 2026-10-16. |
+| **T-008** | Sprint 3: QA Chrome DevTools mobile (test wrap 4 cạnh, D-Pad, BGM) + push GitHub + redeploy Vercel | **Agent 3** | **Done** | Hoàn tất 2026-10-16: **0 lỗi Console**; push GitHub **`ef0d0e6`**; redeploy Vercel **`https://test-lime-seven-18.vercel.app`** (READY). Chi tiết ở [KẾT QUẢ QA SPRINT 3]. |
 
 **Trạng thái hợp lệ:** `Todo` | `In Progress` | `Ready for Review` | `QA Pass` | `QA Fail` | `Done`
 
@@ -284,6 +284,15 @@ D:\Code\test\
 | 2026-10-16 | Agent 2 | Agent 1 & Agent 3 | **Hạng mục 1 (sửa lỗi wrap) — XONG.** *Logic (`snake/logic.js`):* xác nhận `step()` đã `snake.pop()` khi **KHÔNG** ăn mồi (kể cả khi wrap) ⇒ `snake.length` **không tăng**; bổ sung 4 test hồi quy (wrap **4 cạnh**, **60 bước** liên tiếp, **đốt liền kề trên hình xuyến**, ăn mồi ở bờ đối diện). *Render (`snake/game.js`) — nguyên nhân vệt ngang:* hàm `strokePath()` vẽ **một polyline nối liền** điểm đầu (đang ở mép trái) với đốt kế (còn ở mép phải) khi wrap ⇒ kéo một đường băng ngang màn hình. **Đã thay** bằng thuật toán **"trải phẳng qua biên" (unwrap)**: `buildSnakePath()` dùng `wrapDelta()` = độ lệch nhỏ nhất trên hình xuyến để dựng chuỗi toạ độ **LIỀN MẠCH** (hai đốt liên tiếp **luôn** cách đúng 1 ô, kể cả khi wrap), kèm **tiling ±LOGICAL** chỉ khi path tràn ra ngoài mép (để phần tràn hiện ở mép đối diện, nối liền 2 bờ); `splitPath()` vẫn **ngắt đường vẽ** (`beginPath` mới) nếu phát hiện khe > 1.5 ô như một lưới an toàn. Nhờ vậy **tuyệt đối không** còn đường nối/nội suy băng ngang; áp dụng cho cả thân lẫn đầu (particle là một điểm nên không thể có vệt). |
 | 2026-10-16 | Agent 2 | Agent 1 & Agent 3 | **Hạng mục 2 (nhạc nền "Sugarsweet") — XONG.** Thêm vào `snake/audio.js`: `attachBgmElement()`/`startBgm()`/`stopBgm()`/`toggleBgm()`/`setBgmEnabled()`/`isBgmEnabled()`. Nhạc nền **ưu tiên file** trên thẻ `<audio id="bgm" loop>` (khi HTML khai báo `src`); **fallback bắt buộc tự SINH chiptune** (giai điệu 32 bước + bass + hat, scheduler lookahead 0.15s, BPM 112) khi không có file **hoặc** khi thẻ audio bắn sự kiện `error`; trạng thái bật/tắt lưu `localStorage` key `snake:bgm`; nhạc **chỉ phát sau tương tác đầu tiên** (autoplay policy). Thêm nút **BGM: BẬT/TẮT** ở topbar + nút BGM trên máy chơi. ⚠️ **Phát hiện quan trọng:** cách dò file bằng `fetch('bgm.mp3', {method:'HEAD'})` **vẫn bị Chrome ghi lỗi 404 lên Console** → đã **bỏ** cách dò này; chỉ dùng file khi HTML khai báo `src` (dự án hiện **không có** file ⇒ chạy synth ⇒ **0 lỗi console**, **không** phát sinh request 404). |
 | 2026-10-16 | Agent 2 | Agent 1 & Agent 3 | **Hạng mục 3 (giao diện máy chơi cầm tay) — XONG + tự kiểm chứng.** Thêm cụm `.pad` trong cả `index.html` (gốc) và `snake/index.html`: **D-Pad 4 hướng** + 4 nút chức năng **START/Pause, Mute, BGM, Đổi màn**. `bindPadButton()` (trong `snake/game.js`) dùng **`touchstart` + `preventDefault`** (chặn delay 300ms / cuộn trang / zoom), kèm `mousedown` (desktop) & `click` (bàn phím), hiệu ứng lún `.is-active` + **`navigator.vibrate(15)`**. CSS responsive `100dvh`: `overflow:hidden`, board co theo `min(100%, 50dvh)`, ẩn `.controls` trên mobile. *Tự kiểm chứng:* `node --check` **6 file JS** → **OK**; `node test/logic.test.js` → **50/50 pass**, in `ALL TESTS PASSED`, **exit 0**; `node test/qa.test.js` → **16/16 edge pass, 0 defect**, `ALL QA TESTS PASSED`, exit 0 (**KHÔNG** sửa `test/qa.test.js` của Agent 3). Chrome DevTools (`emulate` 390×844, touch): **0 console message** trên cả `/` và `/snake/`; **đo trực tiếp pixel canvas** — vệt ngang/dọc lớn nhất chỉ **≈2.9 ô** (đúng bằng thân rắn) khi wrap ngang/dọc, trong khi bài **tự-test bộ dò bắt đúng vệt 19 ô** ⇒ khẳng định **hết lỗi**; BGM synth tạo **17 oscillator** trong 1.8s với `AudioContext.state = running`; D-Pad **đổi hướng thật** (centroid trục `y` chạy 461→88 rồi vòng xuống đáy); `touchstart` cho `defaultPrevented = true`, nút PAUSE mở overlay "TẠM DỪNG"; `scrollHeight === innerHeight` ⇒ **không cuộn trang**. T-007 = **Ready for Review**. **KHÔNG tự đánh dấu Done** — chờ Agent 3 (T-008) review/QA. |
+| 2026-10-16 | Agent 1 | Agent 3 | Giao task **T-008** qua `orca terminal send`: (1) test Chrome DevTools (wrap 4 cạnh Màn 1 Classic, D-Pad iPhone 14 390×844, BGM, 0 lỗi Console — **nếu có lỗi thì DỪNG, không push**); (2) chỉ khi mọi test PASS mới `git add .` → commit `fix: screen-wrap stretching bug, add sugarsweet BGM and handheld mobile controls` → `git push origin main` → `npx --yes vercel --prod --yes`; (3) ghi báo cáo vào `TEAM_BOARD.md`. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 1a — Test wrap 4 cạnh (Màn 1 Classic) — ĐẠT.** Server nền `python -m http.server 8080`; mở `http://localhost:8080/`, chọn **Màn 1 (wrap)**. **Phương pháp đo khách quan:** chụp canvas sang một canvas phụ (`willReadFrequently`, tránh cảnh báo console) rồi lọc pixel "rắn" theo ngưỡng màu (kênh G≥120, G>R+40, G>B+20) → tính **run ngang/dọc liên tiếp lớn nhất** (đơn vị = ô). Cho rắn đi xuyên **lần lượt 4 cạnh**, reset bộ đo mỗi cạnh: **Phải**: run ngang **2.97 ô** / dọc 1.13; **Trên**: dọc **2.97 ô** / ngang 1.83; **Trái**: ngang **2.50** / dọc 2.03; **Dưới**: ngang **2.83** / dọc 1.93. ⇒ Mọi run ≤ **2.97 ô ≈ đúng chiều dài thân rắn (3 ô)** — **KHÔNG** có vệt kéo dài băng ngang/dọc (lỗi cũ sẽ cho run ~19–20 ô ≈ cả màn hình). Bộ dò "chạm cả 2 bờ" tự đóng băng khung hình đúng lúc rắn nằm vắt qua đường nối và chụp ảnh bằng chứng: `t008_wrap_right.png` (hàng y=74/150), `t008_wrap_top.png` (cột x=335), `t008_wrap_bottom.png` (cột x=275) — ảnh cho thấy thân rắn nằm ở **cả hai mép** mà **không có vệt ngang/dọc** giữa bàn. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 1b — Bất biến chiều dài — ĐẠT.** *Trực tiếp trong game (hook `SnakeLogic.step`):* ghi lại `len` và `score` mỗi bước — bất biến **`len === 3 + score`** luôn đúng, **0 vi phạm** (rắn chỉ dài thêm khi ăn mồi, KHÔNG cộng dồn đốt khi chỉ wrap). *Stress tất định (chạy chính `snake/logic.js` trong trình duyệt):* 2 lượt × **5000 bước** đi thẳng (ngang & dọc) → mỗi lượt **250 lần wrap**, **0 vi phạm** chiều dài, `maxLen = 3`. Ghi chú: khi tab ở chế độ nền, Chrome bóp `requestAnimationFrame` (số bước tạm thời thấp); sau `select_page bringToFront` game chạy đúng tốc độ **~7,1 bước/giây** (= 140 ms/bước của Màn 1) — đây là hành vi của môi trường automation, không phải lỗi game. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 1c — Mobile emulation iPhone 14 (390×844) — ĐẠT.** `emulate` viewport `390x844x3,mobile,touch` + UA iPhone, nạp lại trang. **Layout `100dvh`:** `innerWidth=390`, `innerHeight=844`, `dpr=3`; `documentElement.scrollHeight = body.scrollHeight = 844 = innerHeight` ⇒ **`scrollable=false` (không cuộn trang)**; `body overflow-y: hidden`; cụm `.pad` **display:flex** (hiện), `.controls` **display:none** (ẩn trên mobile); canvas backing `960×960`, CSS `377×377`; **4/4 nút `.dbtn`**. **Bấm trực tiếp 4 nút D-Pad** (đọc `state.dir` + toạ độ đầu rắn trước/sau): **Lên** `(1,0)→(0,-1)`, đầu `(18,10)→(19,4)` ✔; **Trái** `(0,-1)→(-1,0)`, đầu `(19,2)→(13,1)` ✔; **Xuống** `(-1,0)→(0,1)`, đầu `(12,1)→(11,8)` ✔; **Phải** `(0,1)→(1,0)`, đầu `(11,9)→(18,10)` ✔ ⇒ **đổi hướng nhạy và chính xác 4/4**. Kiểm tra thêm **đường cảm ứng thật**: phát `TouchEvent('touchstart')` lên nút "Lên" → `defaultPrevented = true`, nút có class lún `is-active`, `state.dir` đổi thành `(0,-1)` ✔ (đúng cơ chế chặn delay 300ms/cuộn/zoom). Ảnh: `t008_mobile_play.png`. |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 1d — Nhạc nền (BGM) — ĐẠT.** Hook `AudioContext.prototype.createOscillator` để đếm số nốt thực sự được tổng hợp. Sau tương tác đầu tiên (bấm chọn màn), nhạc nền **phát**: **61 oscillator** trong thời gian chơi, `AudioContext.state = running`, `sampleRate = 48000`, `SnakeAudio.isBgmEnabled() = true`, `isMuted() = false`. Dự án **không có** file `bgm.mp3` và thẻ `<audio id="bgm">` **không khai báo `src`** ⇒ tự động dùng **fallback synth "Sugarsweet"**, **không phát sinh request file** nào (Network chỉ có 7 tài nguyên app, **không 404**). **Console: 0 lỗi đỏ** (không `ReferenceError`/`SyntaxError`/lỗi Web Audio/autoplay). |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 2 — Push GitHub — ĐẠT.** (Chỉ thực hiện sau khi MỌI test PASS.) `git add .` → commit **`ef0d0e66e5740207c615154239d5845969588d9a`** (short `ef0d0e6`) message đúng theo SPEC `fix: screen-wrap stretching bug, add sugarsweet BGM and handheld mobile controls` (7 file, +969 / −46) → `git push origin main` (`728af5b..ef0d0e6 main -> main`). `git ls-remote origin refs/heads/main` = `ef0d0e6…` (**khớp local**). |
+| 2026-10-16 | Agent 3 | Toàn đội | **Nhiệm vụ 2 — Redeploy Vercel — ĐẠT.** `npx --yes vercel --prod --yes` → **Production URL `https://test-lime-seven-18.vercel.app`**, deployment `dpl_DdLnBkE1G7fcXzpJDFcMdeqTj7wk`, `readyState = READY`. Kiểm chứng bản production (qua `vercel curl`): `/` HTTP **200** (4795 B, có `id="bgmBtn"`, `id="bgm"`, `class="pad"`, `dbtn--up/down`, `data-action="pause"`); `/snake/game.js` 200 (23388 B, có `wrapDelta` + `buildSnakePath`); `/snake/audio.js` 200 (11282 B, có `BGM_MELODY` + `startBgm`) ⇒ **bản mới đã lên production**. ⚠️ Deployment vẫn bật **Vercel Authentication (Deployment Protection)** → cần đăng nhập Vercel để mở công khai. |
+| 2026-10-16 | Agent 3 | Agent 1 | **Kết luận T-008: 3/3 nhiệm vụ ĐẠT** (Chrome DevTools 0 lỗi · push `ef0d0e6` · Vercel READY). **T-008 = `Done`.** Đề xuất **T-007 = `QA Pass` → Agent 1 duyệt `Done`**. Regression: `node --check` 7 file JS OK; `logic.test.js` **50/50**; `qa.test.js` **16/16**. |
+| 2026-10-16 | Agent 1 | Toàn đội | **XÁC MINH ĐỘC LẬP & DUYỆT CUỐI (Sprint 3).** Agent 1 tự kiểm chứng, KHÔNG chỉ tin báo cáo: (1) `git show --stat ef0d0e6` → 7 file (+969/−46) đúng phạm vi; (2) `git ls-remote origin refs/heads/main` = `ef0d0e6…` (khớp local); (3) chạy lại `node test/logic.test.js` → **50/50 pass**, `node test/qa.test.js` → **16/16 pass**; (4) `Invoke-WebRequest` **production** `https://test-lime-seven-18.vercel.app/` → **HTTP 200** và chứa `bgmBtn`, `bgm`, `dbtn--up/down`, `data-action="pause"`, `pad`; `/snake/game.js` **200** chứa `wrapDelta` + `buildSnakePath`; `/snake/audio.js` **200** chứa `startBgm` + `BGM_MELODY`. ⇒ Bản production thực sự phục vụ bản đã sửa. **Duyệt `T-007 = Done`** (QA Pass qua T-008) và **`T-008 = Done`**. Sprint 3 hoàn tất. |
 
 ---
 
@@ -360,3 +369,83 @@ D:\Code\test\
 | ⚠️ **Cảnh báo** | Deployment bật **Vercel Authentication (Deployment Protection)** → người ngoài phải đăng nhập Vercel mới mở được URL. Muốn public cần tắt tại *Project Settings → Deployment Protection* (Agent 1/người dùng quyết định). |
 
 **Kết luận T-006:** cả **3/3 nhiệm vụ ĐẠT** (Chrome DevTools 0 lỗi · GitHub push OK · Vercel deploy READY).
+
+---
+
+## KẾT QUẢ QA SPRINT 3 (T-008 — Giai đoạn 3, 2026-10-16)
+
+### 1) Số lỗi Console
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| **Số lỗi Console** | **0** — không `ReferenceError`, `SyntaxError`, lỗi Web Audio API, không cảnh báo autoplay, không 404 |
+| Phạm vi | Desktop (`http://localhost:8080/`) và Mobile emulation (iPhone 14 390×844). Trang lồng `/snake/` cũng sạch |
+| Web Audio | `AudioContext.state = running`, `sampleRate = 48000`; không có thông báo autoplay (nhạc chỉ phát **sau tương tác đầu tiên**) |
+| Network | 7 tài nguyên app đều `200`/`304`; **không** request `bgm.mp3` và **không** 404 |
+| Ghi chú | Bộ đo pixel của QA dùng canvas phụ `getContext('2d', {willReadFrequently:true})` nên **không** sinh cảnh báo như T-006 |
+
+### 2) Test wrap 4 cạnh — Màn 1 (Classic, `wrap = true`)
+
+| Tiêu chí | Kết quả |
+| --- | --- |
+| Cơ chế đo | Lọc pixel "rắn" (G≥120, G>R+40, G>B+20) → **run liên tiếp ngang/dọc lớn nhất**, quy ra **ô** (CELL = 24 px logic) |
+| **Cạnh Phải** | run ngang **2.97 ô**, dọc 1.13 ô | 
+| **Cạnh Trên** | run dọc **2.97 ô**, ngang 1.83 ô | 
+| **Cạnh Trái** | run ngang **2.50 ô**, dọc 2.03 ô | 
+| **Cạnh Dưới** | run ngang **2.83 ô**, dọc 1.93 ô | 
+| Ngưỡng "lỗi" | Lỗi cũ (vệt xuyên màn) cho run **~19–20 ô**. Kết quả quan sát **≤ 2.97 ô ≈ đúng thân rắn (3 ô)** ⇒ **KHÔNG có vệt kéo dài** | 
+| Rắn đi xuyên qua **đường nối** | Bộ dò "chạm cả 2 bờ" tự đóng băng & chụp ảnh: `t008_wrap_right.png` (vắt ngang, hàng y≈10), `t008_wrap_top.png`, `t008_wrap_bottom.png` (vắt dọc) — thân rắn ở **cả 2 mép**, **không** đường băng giữa |
+| **Chiều dài rắn** | Bất biến `len === 3 + score` đúng **mọi bước**, **0 vi phạm** (`step()` vẫn `pop()` khi chỉ wrap, không cộng dồn đốt) |
+| Stress tất định | 2 lượt × **5000 bước** (đi thẳng ngang & dọc trên `logic.js`) = **250 wrap/lượt**, **0 vi phạm** chiều dài, `maxLen = 3` |
+| **Kết luận** | **PASS** |
+
+### 3) D-Pad Mobile (iPhone 14 — 390×844)
+
+| Nút bấm | `state.dir` trước → sau | Đầu rắn | Kết quả |
+| --- | --- | --- | --- |
+| **Lên** | `(1,0) → (0,-1)` | `(18,10) → (19,4)` | ✔ |
+| **Trái** | `(0,-1) → (-1,0)` | `(19,2) → (13,1)` | ✔ |
+| **Xuống** | `(-1,0) → (0,1)` | `(12,1) → (11,8)` | ✔ |
+| **Phải** | `(0,1) → (1,0)` | `(11,9) → (18,10)` | ✔ |
+| **Đường cảm ứng** | `TouchEvent('touchstart')` trên nút "Lên" → `defaultPrevented = true`, class lún `is-active`, dir → `(0,-1)` | — | ✔ |
+| **Layout `100dvh`** | `innerHeight 844` = `scrollHeight 844` = `844` ⇒ **không cuộn** (`scrollable=false`); `.pad` hiện, `.controls` ẩn; canvas backing `960×960` / CSS `377×377`; 4/4 nút `.dbtn` | — | ✔ |
+| **Kết luận** | Đổi hướng **nhạy + chính xác 4/4** nút, touch path chuẩn | | **PASS** |
+
+### 4) Nhạc nền (BGM)
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| Nguồn nhạc | Thẻ `<audio id="bgm" loop>` **không có `src`** + dự án **không có** `bgm.mp3` → dùng **fallback synth "Sugarsweet"** (chạy đúng như thiết kế) |
+| Bằng chứng phát nhạc | **61 oscillator** được tổng hợp (hook `createOscillator`), `AudioContext.state = running`, `sampleRate = 48000` |
+| Cờ trạng thái | `isBgmEnabled() = true`, `isMuted() = false` |
+| 404 | **Không** có request file nhạc ⇒ **không 404** |
+| Console | **0 lỗi** (không lỗi Web Audio) |
+| **Kết luận** | **PASS** |
+
+### 5) GitHub & Vercel (DevOps)
+
+| Hạng mục | Giá trị |
+| --- | --- |
+| Commit message | `fix: screen-wrap stretching bug, add sugarsweet BGM and handheld mobile controls` |
+| **Commit hash** | **`ef0d0e66e5740207c615154239d5845969588d9a`** (short `ef0d0e6`) — 7 file, +969 / −46 |
+| Nhánh / Push | `main`, `728af5b..ef0d0e6 main -> main`; `git ls-remote` khớp local |
+| **GitHub URL** | https://github.com/PhuocThanh22/snak |
+| **Vercel Production URL** | **https://test-lime-seven-18.vercel.app** |
+| Deployment ID | `dpl_DdLnBkE1G7fcXzpJDFcMdeqTj7wk` — `readyState = READY` |
+| URL trực tiếp / Inspector | https://test-dl044r5t3-phuoc-thanh.vercel.app · https://vercel.com/phuoc-thanh/test/DdLnBkE1G7fcXzpJDFcMdeqTj7wk |
+| Kiểm chứng production | `/` 200 (4795 B: có `bgmBtn`, `bgm`, `pad`, `dbtn--up/down`, `data-action="pause"`); `/snake/game.js` 200 (23388 B: `wrapDelta`, `buildSnakePath`); `/snake/audio.js` 200 (11282 B: `BGM_MELODY`, `startBgm`) |
+| ⚠️ Cảnh báo | Deployment bật **Vercel Authentication (Deployment Protection)** → cần đăng nhập Vercel để truy cập công khai |
+
+### Kết luận Sprint 3
+
+- **QA PASS** toàn bộ: **0 lỗi Console**, wrap **4/4 cạnh hết vệt kéo dài** + giữ đúng chiều dài, **D-Pad mobile 4/4 chính xác**, **BGM synth phát**, **`100dvh` không cuộn**.
+- Regression: `node --check` 7 file JS → OK; `node test/logic.test.js` → **50/50**; `node test/qa.test.js` → **16/16**.
+- **Hành động:** **T-008 = `Done`**; **T-007 = `QA Pass`** và **đề xuất Agent 1 duyệt `Done`** (Agent 1 giữ quyền quyết định cuối cùng). Bằng chứng ảnh: `t008_wrap_right.png`, `t008_wrap_top.png`, `t008_wrap_bottom.png`, `t008_mobile_play.png`.
+
+### Duyệt cuối của Agent 1 (2026-10-16)
+
+- **T-007 = `Done`**, **T-008 = `Done`** (Agent 1 đã xác minh độc lập — xem dòng nhật ký cuối).
+- **Commit bàn giao:** `ef0d0e6` — `fix: screen-wrap stretching bug, add sugarsweet BGM and handheld mobile controls`.
+- **GitHub:** https://github.com/PhuocThanh22/snak (nhánh `main`).
+- **Vercel Production:** https://test-lime-seven-18.vercel.app — xác minh **HTTP 200**, phục vụ bản mới (có D-Pad, nút BGM, `wrapDelta`).
+- **Lưu ý cho khách hàng:** Vercel đang bật **Deployment Protection (Vercel Authentication)**. Alias production `test-lime-seven-18.vercel.app` vẫn truy cập công khai (đã kiểm chứng 200); URL deployment trực tiếp (`test-dl044r5t3-…`) có thể yêu cầu đăng nhập Vercel. Nếu muốn tắt: Vercel → Project `test` → Settings → Deployment Protection → Disabled.
