@@ -49,8 +49,8 @@ D:\Code\test\
 | **T-006** | Test bằng Chrome DevTools + push GitHub + deploy Vercel | **Agent 3** | **Done** | Hoàn tất 2026-10-16: **0 lỗi Console**; push GitHub `32acdb0`; deploy Vercel `https://test-lime-seven-18.vercel.app`. Chi tiết ở [KẾT QUẢ TRIỂN KHAI]. |
 | **T-007** | Sprint 3: sửa lỗi kéo dài khi wrap + nhạc nền Sugarsweet (fallback synth) + giao diện máy chơi cầm tay cho mobile | **Agent 2** | **Done** | Agent 3 xác minh độc lập qua T-008 (Chrome DevTools): **0 lỗi Console**; wrap **4 cạnh không còn vệt kéo dài** (run ngang/dọc ≤ **2.97 ô** = đúng bằng thân rắn; stress tất định 5000 bước × 2 trục = **250 wrap/trục, 0 sai chiều dài**); D-Pad iPhone 14 (390×844) **cả 4 nút đổi hướng đúng**; **BGM synth phát** (61 oscillator, `AudioContext.state=running`); `100dvh` **không cuộn**. `logic.test.js` 50/50; `qa.test.js` 16/16. **Agent 1 đã xác minh độc lập và duyệt `Done`** ngày 2026-10-16. |
 | **T-008** | Sprint 3: QA Chrome DevTools mobile (test wrap 4 cạnh, D-Pad, BGM) + push GitHub + redeploy Vercel | **Agent 3** | **Done** | Hoàn tất 2026-10-16: **0 lỗi Console**; push GitHub **`ef0d0e6`**; redeploy Vercel **`https://test-lime-seven-18.vercel.app`** (READY). Chi tiết ở [KẾT QUẢ QA SPRINT 3]. |
-| **T-009** | Sprint 4: sửa âm thanh KHÔNG nghe được trên điện thoại (tăng âm lượng + unlock audio mobile) + chỉnh tốc độ rắn lúc vào màn | **Agent 2** | **Ready for Review** | Hoàn tất 2026-10-17. Đo tại `localhost:8123` (iPhone 14, 390×844): **peak BGM `0.3001`** (cũ `0.0196`, ×15), RMS `0.0239` (cũ `0.0067`), **SFX ăn mồi `0.4166`**; unlock đa sự kiện + buffer im lặng 1 sample + retry tới `running`; gợi ý "Chạm để bật âm thanh" chỉ hiện khi KHÔNG mở khoá được. Tốc độ vào màn: Classic **111.1**, Boxed **100.1**, Maze **86.4** ms/bước (cũ 140/122/104). `logic.test.js` **53/53**, `qa.test.js` **16/16**, **0 lỗi Console**. Chờ Agent 3 (T-010) QA — xem [KẾT QUẢ TỰ KIỂM T-009]. |
-| **T-010** | Sprint 4: QA âm thanh trên mobile emulation (đo biên độ thật) + test tốc độ + push GitHub + redeploy Vercel | **Agent 3** | **Todo** | Sẵn sàng: **T-009 = Ready for Review** (2026-10-17). Cần đo peak > 0.1 + kiểm tốc độ + 0 lỗi Console, rồi push + redeploy. |
+| **T-009** | Sprint 4: sửa âm thanh KHÔNG nghe được trên điện thoại (tăng âm lượng + unlock audio mobile) + chỉnh tốc độ rắn lúc vào màn | **Agent 2** | **Done** | Agent 3 xác minh độc lập qua T-010 (Chrome DevTools mobile iPhone 14, `localhost:8080`): **peak BGM `0.3130`** (cũ `0.0196` → **×16**), RMS `0.1018` (cũ `0.0067`), **SFX ăn mồi 27/27 lần có tín hiệu** (min `0.3397`, max `0.6468`), **không clip** (mọi peak < 1.0); **BGM bật mặc định**, **Mute → peak `0.0000`**, mở lại → `0.2983`; **0 lỗi Console**; tốc độ đo theo điểm: điểm 0 = **110.0 ms/bước**, điểm 10 ≈ `79.9`, điểm ≥17 ≈ `60.8–64` ms (sàn 62). **Agent 1 đã xác minh độc lập (đo lại trên production: peak `0.3001`, RMS `0.1011`, 0 console message) và duyệt `Done`** ngày 2026-10-17. Chi tiết ở [KẾT QUẢ QA SPRINT 4]. |
+| **T-010** | Sprint 4: QA âm thanh trên mobile emulation (đo biên độ thật) + test tốc độ + push GitHub + redeploy Vercel | **Agent 3** | **Done** | Hoàn tất 2026-10-17: **0 lỗi Console**; push GitHub **`5e1cb5b`**; redeploy Vercel **`https://test-lime-seven-18.vercel.app`** (READY). Chi tiết ở [KẾT QUẢ QA SPRINT 4]. |
 
 **Trạng thái hợp lệ:** `Todo` | `In Progress` | `Ready for Review` | `QA Pass` | `QA Fail` | `Done`
 
@@ -430,6 +430,16 @@ Kỹ thuật đo: chèn `AnalyserNode` **giữa `master` và `destination`** (b�
 | 2026-10-17 | Agent 2 | Agent 1 & Agent 3 | Nhận **T-009** (Sprint 4): `Todo` → `In Progress`. **Hạng mục 4.1 (âm thanh điện thoại) — XONG** trong `snake/audio.js`. *Tăng âm lượng:* `master.gain 0.5 → 0.9` (**cả** trong `ensureContext()` **và** `setMuted()`), `bgmGain 0.16 → 0.5`, `blip()` melody `0.11 → 0.32` / bass `0.16 → 0.42` / hat `0.025 → 0.10`, SFX `playEat 0.28 → 0.40`, `playLevelUp 0.22/0.22/0.24 → 0.34/0.34/0.37`, `playMove 0.05 → 0.12`, `playGameOver 0.3 → 0.45`. *Unlock mobile:* thêm `unlockAudio()` gắn **6 sự kiện** (`pointerdown`/`touchstart`/`touchend`/`mousedown`/`click`/`keydown`) + `visibilitychange`; trong mỗi gesture gọi `ensureContext()` → **phát buffer IM LẶNG 1 sample** qua `createBufferSource` (khoá phần cứng iOS) → `resume()`, **retry ở mỗi gesture** tới khi `running`; giữ `window.AudioContext || window.webkitAudioContext`; `tone()` **và** `blip()` tự `resume()` nếu `suspended`; API mới `getState()`/`isAudioRunning()`/`onStateChange(cb)`. *Chống "kẹt im lặng":* thêm gợi ý `#audioHint` **"🔇 Chạm để bật âm thanh"** (chỉ hiện khi sau gesture vẫn `suspended`, tự ẩn khi `running`) trong `index.html` gốc + `snake/index.html` + `.audio-hint` ở `style.css`; đổi nhãn nút **Mute** thành `🔊 Âm thanh: BẬT` / `🔇 Âm thanh: TẮT` (BGM đã có `BẬT/TẮT`). |
 | 2026-10-17 | Agent 2 | Agent 1 & Agent 3 | **Hạng mục 4.2 (tốc độ vào màn) — XONG.** `snake/levels.js`: Classic `speed 140 → 110` + `minSpeed 62`, Boxed `122 → 100` + `minSpeed 58`, Maze `104 → 90` + `minSpeed 55` (thêm trường `minSpeed`). `snake/game.js`: `speedFor(score) = Math.max(minLevel.minSpeed, speed - score * 3)` (cũ `Math.max(55, base - score * 4)`), cập nhật cả `FALLBACK_LEVEL` + `toConfig` mặc định `110`. **Hạng mục 4.3 (không phá Sprint 3):** wrap/D-Pad/menu/high score giữ nguyên. |
 | 2026-10-17 | Agent 2 | Agent 1 & Agent 3 | **TỰ KIỂM CHỨNG T-009 (Chrome DevTools mobile iPhone 14, 390×844, `http://localhost:8123/`).** Hook `GainNode.prototype.connect` để bắt `master` rồi chèn `AnalyserNode` **giữa `master` và `destination`**, bấm **Classic**: `state = running`, **peak `0.3001`** (cũ `0.0196` → **×15**), **RMS `0.0239`** (cũ `0.0067`); **peak SFX ăn mồi `0.4166`** (gọi `SnakeAudio.playEat()`). *Unlock:* gesture thường → `onStateChange(true)` + gợi ý **ẩn**; giả lập `resume()` hỏng (suspend + no-op) → `onStateChange(false)` + gợi ý **hiện** (`display:block` bền qua 0/50/150/300 ms); khôi phục → tự ẩn. *Tốc độ* (bọc `SnakeLogic.step` ghi mốc, chọn màn bằng nút menu thật): Classic **111.1**, Boxed **100.1**, Maze **86.4** ms/bước (cũ 140/122/104). *Sprint 3 nguyên vẹn:* vệt wrap lớn nhất **2.88 ô**; D-Pad **4 nút hướng + 4 nút chức năng**; 3 nút menu; **0 console message**. *Test:* `node --check` 6 file JS **OK**; `node test/logic.test.js` → **53/53 pass** `ALL TESTS PASSED`; `node test/qa.test.js` → **16/16 edge pass, 0 defect** `ALL QA TESTS PASSED` (**KHÔNG** sửa `test/qa.test.js`). **T-009 = `Ready for Review`** — chờ Agent 3 (T-010). **KHÔNG tự đánh dấu Done.** |
+| 2026-10-17 | Agent 1 | Agent 3 | Giao task **T-010** (Sprint 4) cho Agent 3: (1) Chrome DevTools **mobile emulation iPhone 14 (390×844, touch)** — **đo biên độ THẬT** bằng `AnalyserNode` chèn giữa `master` và `destination`, yêu cầu **peak > 0.1** (cũ 0.02) và **< 1.0** (không clip), kích hoạt **SFX ăn mồi**; (2) BGM bật mặc định + Mute tắt/mở + nhạc chỉ phát sau tương tác; (3) **0 lỗi Console** — nếu có lỗi thì **DỪNG**, ghi `[Báo cáo lỗi/Kết quả]` và báo Agent 1; (4) đo **tốc độ Classic điểm 0** (kỳ vọng ≈110 ms/bước) và **khi điểm cao** (nhanh hơn rõ rệt); (5) **không hồi quy Sprint 3** (wrap 4 cạnh không vệt, D-Pad bấm được). **Chỉ khi MỌI test PASS** mới push + redeploy. |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 1a — ĐO BIÊN ĐỘ ÂM THANH THẬT TRÊN MOBILE — ĐẠT.** Server nền `python -m http.server 8080`; mở `http://localhost:8080/`, `emulate` viewport **`390x844x3,mobile,touch`** + UA iPhone. **Phương pháp:** hook `AudioNode.prototype.connect`, khi đích nối là `ctx.destination` thì chèn **`AnalyserNode` (fftSize 2048) giữa nguồn và `destination`**, rồi lấy mẫu `getFloatTimeDomainData()` mỗi **40 ms** → tính **peak = max\|x\|** và **RMS** liên tục. Xác nhận hook bắt đúng **1 kết nối** (`GainNode` = `master`) → `destConnects=1`, `analysers=1`, không lỗi hook. **Kết quả bấm nút Classic (không ăn mồi), cửa sổ 2.5 s: peak = `0.3130`** (cũ `0.0196` → **×16**), **RMS = `0.1018`** (cũ `0.0067` → ×15), `samples=81`, `AudioContext.state = running`. ⇒ **peak > 0.1 ✔** và **peak < 1.0 ✔** (không clip). Trước tương tác: `getState() = none` (chưa tạo AudioContext) ⇒ **không vi phạm autoplay**. |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 1b — SFX KHI ĂN MỒI — ĐẠT.** Bật **auto-pilot QA** (lái rắn ăn mồi thật qua `SnakeLogic.setDirection`, tránh quay đầu 180° và tránh tự cắn thân) trong **22 s**: **27 lần ăn mồi** (`eats=27`, `steps=501`, điểm đạt **27**, autopilot không lỗi). Ghi mốc `Date.now()` mỗi lần ăn rồi đối chiếu với trace biên độ (**±60…+250 ms**): **cả 27/27 lần đều có đỉnh tín hiệu vọt lên** — min `0.3397`, max `0.6468`, trung bình ≈ `0.40` ⇒ **SFX ăn mồi phát ra tín hiệu thật, rõ ràng** (nền BGM đơn thuần chỉ `0.3130`). Peak toàn cục cả cửa sổ = **`0.6468`** (RMS `0.1664`) — vẫn **< 1.0 ⇒ không clip**. |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 1c — BGM MẶC ĐỊNH / MUTE / AUTOPLAY — ĐẠT.** Xoá `localStorage` (`snake:bgm`, `snake:muted`) rồi nạp lại → **mặc định đúng**: nút `🎵 BGM: BẬT`, `🔊 Âm thanh: BẬT`, `isBgmEnabled()=true`, `isMuted()=false`; **AudioContext chưa được tạo** (`state='none'`) trước gesture; gợi ý `#audioHint` **ẩn**. **Test Mute (bấm nút thật):** trước khi mute peak `0.2924` / RMS `0.0995` → bấm **Mute**: `isMuted()=true`, nhãn đổi `🔇 Âm thanh: TẮT`, nút pad có class `is-off`, **peak = `0.0000`, RMS = `0.0000` (im lặng tuyệt đối)** → bấm lại: `isMuted()=false`, nhãn `🔊 Âm thanh: BẬT`, **peak = `0.2983`, RMS = `0.0992` (có tiếng trở lại)**. ⇒ **Mute tắt/mở hoạt động đúng**, nhạc **chỉ bắt đầu sau tương tác**. |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 1d — TỐC ĐỘ THEO ĐIỂM — ĐẠT.** Bọc `SnakeLogic.step` ghi mốc `performance.now()` rồi lấy **median** khoảng cách giữa các bước, **nhóm theo điểm** (501 bước): **điểm 0 → `110.0 ms/bước`** (đúng kỳ vọng ≈110), điểm 1 → 106.3, điểm 5 → 94.4, **điểm 10 → 79.9**, điểm 15 → 66.3, điểm 17 → 60.8, điểm 20 → 63.2, điểm 24 → 62.6, điểm 26 → 64.3 ⇒ **nhanh dần rõ rệt** theo điểm và **chạm sàn ~62 ms** từ khoảng điểm 16–17 (đúng `speedFor = max(minSpeed, speed − score×3)`, Classic `110/62`). So với bản cũ (140 ms lúc vào màn) ⇒ vào màn **nhanh hơn ~21 %** nhưng vẫn giữ đà tăng tốc. |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 1e — KHÔNG HỒI QUY SPRINT 3 — ĐẠT.** Bộ đo run-length trên canvas (lọc pixel rắn G≥120, G>R+40, G>B+20; CELL=48 px vì canvas backing `960×960`, `dpr` game cap = 2) cho rắn đi xuyên **lần lượt 4 cạnh** bằng cách **bấm nút D-Pad thật**: **Phải** (run ngang `2.02` / dọc `1.04`), **Trên** (dọc `2.94` / ngang `1.13`), **Trái** (ngang `2.96` / dọc `1.13`), **Dưới** (dọc `2.96` / ngang `1.13`) ⇒ mọi run **≤ 2.96 ô ≈ đúng thân rắn (3 ô)**, **KHÔNG có vệt kéo dài** (lỗi cũ sẽ ~19–20 ô). Bộ dò "chạm cả 2 bờ" tự đóng băng đúng lúc vắt qua đường nối và chụp ảnh: `t010_wrap_right.png`, `t010_wrap_top.png`, `t010_wrap_left.png`, `t010_wrap_bottom.png`. **D-Pad:** `Phải (1,0)` → `Trên (0,-1)` → `Trái (-1,0)` → `Dưới (0,1)` — **cả 4 nút đổi hướng đúng**. |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 2 — Push GitHub — ĐẠT.** (Chỉ chạy sau khi MỌI test PASS.) `git add .` → commit **`5e1cb5b6191168e45a2c23f60c31ae8c53917f1c`** (short `5e1cb5b`), message đúng SPEC `fix: audible mobile audio (louder + iOS unlock) and faster start speed` (8 file, +483 / −44) → `git push origin main` (`804fd05..5e1cb5b main -> main`); `git ls-remote origin refs/heads/main` = `5e1cb5b…` (**khớp local**). |
+| 2026-10-17 | Agent 3 | Toàn đội | **Nhiệm vụ 2 — Redeploy Vercel — ĐẠT.** `npx --yes vercel --prod --yes` → **Production URL `https://test-lime-seven-18.vercel.app`**, deployment **`dpl_6HcbkCCm8BEB3eN9zVbS15GGiTyQ`**, `readyState = READY`. Kiểm chứng bản production (`vercel curl`): `/` **200** (4925 B, có `audioHint` + `bgmBtn` + `class="pad"`); `/snake/audio.js` **200** (15830 B, có `muted ? 0 : 0.9`, `bgmGain.gain.value = 0.5`, `UNLOCK_EVENTS`, `createBufferSource`); `/snake/levels.js` **200** (3527 B, có `speed: 110`, `minSpeed: 62`) ⇒ **bản mới đã lên production**. ⚠️ Deployment vẫn bật **Vercel Authentication** (alias production truy cập công khai OK; URL deployment trực tiếp có thể yêu cầu đăng nhập). |
+| 2026-10-17 | Agent 3 | Agent 1 | **Kết luận T-010: 3/3 nhiệm vụ ĐẠT — QA PASS.** Âm thanh mobile đã **nghe được thật** (peak `0.3130` vs `0.0196`, **×16**), SFX ăn mồi có tín hiệu (27/27), Mute đúng, **0 lỗi Console**, tốc độ vào màn **110 ms** và nhanh dần tới sàn 62 ms, **không hồi quy Sprint 3**. **T-010 = `Done`**; đề xuất **T-009 = `QA Pass` → Agent 1 duyệt `Done`**. Regression: `node --check` 7 file JS OK; `logic.test.js` **53/53**; `qa.test.js` **16/16**. |
+| 2026-10-17 | Agent 1 | Toàn đội | **XÁC MINH ĐỘC LẬP & DUYỆT CUỐI (Sprint 4).** (1) `git log`/`git ls-remote` → commit **`5e1cb5b`** khớp local & remote; `git diff` trước commit 8 file (+481/−44). (2) Chạy lại `node --check` 6 file JS OK; `logic.test.js` **53/53**; `qa.test.js` **16/16**. (3) Kiểm trong mã: `snake/audio.js` có `master.gain.value = 0.9`, `bgmGain.gain.value = 0.5`, blip 0.32/0.42, `UNLOCK_EVENTS` 6 sự kiện + `visibilitychange` + `createBufferSource`, `webkitAudioContext`; `snake/levels.js` có `speed`/`minSpeed` = 110/62, 100/58, 90/55. (4) **Đo lại trên bản PRODUCTION thật** (hook `AudioContext` + `AnalyserNode`, bấm Classic): `ctxState=running`, **peak `0.3001`** (cũ `0.0196` → **×15**), **RMS `0.1011`** (cũ 0.0067), **0 console message**. ⇒ Lỗi "không có âm thanh trên điện thoại" **đã hết**. **Duyệt `T-009 = Done`** và **`T-010 = Done`**. Sprint 4 hoàn tất. |
 
 ---
 
@@ -586,3 +596,99 @@ Kỹ thuật đo: chèn `AnalyserNode` **giữa `master` và `destination`** (b�
 - **GitHub:** https://github.com/PhuocThanh22/snak (nhánh `main`).
 - **Vercel Production:** https://test-lime-seven-18.vercel.app — xác minh **HTTP 200**, phục vụ bản mới (có D-Pad, nút BGM, `wrapDelta`).
 - **Lưu ý cho khách hàng:** Vercel đang bật **Deployment Protection (Vercel Authentication)**. Alias production `test-lime-seven-18.vercel.app` vẫn truy cập công khai (đã kiểm chứng 200); URL deployment trực tiếp (`test-dl044r5t3-…`) có thể yêu cầu đăng nhập Vercel. Nếu muốn tắt: Vercel → Project `test` → Settings → Deployment Protection → Disabled.
+
+---
+
+## KẾT QUẢ QA SPRINT 4 (T-010 — Giai đoạn 4, 2026-10-17)
+
+**Bối cảnh:** khách báo **không có âm thanh trên điện thoại**; Agent 1 đo bản production cũ **peak `0.0196` (~ −34 dBFS)**. Agent 2 (T-009) đã tăng âm lượng + thêm unlock mobile. Agent 3 đo lại **bằng thiết bị đo thật** trên mobile emulation trước khi deploy.
+
+**Môi trường:** Chrome DevTools, **emulate iPhone 14 — `390×844×3`, `mobile`, `touch`**, UA iPhone; `python -m http.server 8080`; URL `http://localhost:8080/`.
+**Kỹ thuật đo:** hook `AudioNode.prototype.connect` → khi đích là `ctx.destination`, **chèn `AnalyserNode` (fftSize 2048) giữa `master` và `destination`**; lấy mẫu `getFloatTimeDomainData()` mỗi **40 ms** → **peak = max|x|**, **RMS**. Xác nhận bắt đúng **1** kết nối (`GainNode` = `master`).
+
+### 1) Biên độ âm thanh THẬT (peak / RMS) — có so sánh với số cũ
+
+| Phép đo | Số cũ (Agent 1, production) | **Số mới (Agent 3, T-010)** | Nhận xét |
+| --- | --- | --- | --- |
+| **Peak BGM** (Classic, không ăn mồi, 2.5 s) | `0.0196` (~−34 dBFS) | **`0.3130`** | **×16** · **> 0.1 ✔** · **< 1.0 ✔** |
+| **RMS BGM** | `0.0067` | **`0.1018`** | ×15 |
+| **Peak có SFX** (22 s lái rắn ăn mồi) | — | **`0.6468`** (RMS `0.1664`) | vẫn **< 1.0 ⇒ không clip méo** |
+| **SFX khi ăn mồi** (đối chiếu ±60…+250 ms sau mỗi lần ăn) | ~`0.14` (`0.28×0.5`) | **27/27 lần có đỉnh vọt lên**: min `0.3397`, max `0.6468`, TB ≈ `0.40` | **SFX phát ra tín hiệu thật** |
+| `AudioContext.state` | `running` | `running` (trước tương tác = `none`) | **không vi phạm autoplay** |
+| **Clip (peak ≥ 1.0)?** | Không | **KHÔNG** (mọi peak < 1.0) | ✅ |
+| Trạng thái | — | **PASS** | |
+
+### 2) BGM mặc định · Mute · Autoplay
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| **BGM bật mặc định** | Sau khi xoá `localStorage` (`snake:bgm`, `snake:muted`) + nạp lại: `🎵 BGM: BẬT`, `isBgmEnabled()=true` ✔ |
+| Mute mặc định | `🔊 Âm thanh: BẬT`, `isMuted()=false` ✔ |
+| **Mute tắt** | Bấm nút: `isMuted()=true`, nhãn `🔇 Âm thanh: TẮT`, pad `is-off` → **peak `0.0000`, RMS `0.0000`** (im lặng tuyệt đối) ✔ |
+| **Mute mở lại** | Bấm lại: `isMuted()=false`, `🔊 Âm thanh: BẬT` → **peak `0.2983`, RMS `0.0992`** (có tiếng) ✔ |
+| Nhạc chỉ phát sau tương tác | Trước gesture: `getState()='none'` (chưa tạo AudioContext), `#audioHint` ẩn; sau khi bấm Classic: `running` ✔ |
+| Gợi ý "Chạm để bật âm thanh" | **Ẩn** (audio mở khoá thành công) ✔ |
+
+### 3) Số lỗi Console
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| **Số lỗi Console** | **0** — không `ReferenceError` / `SyntaxError` / lỗi Web Audio / cảnh báo autoplay / 404 |
+| Phạm vi | Mobile emulation iPhone 14 (390×844) trong suốt 1a→1e (đo biên độ, ăn mồi, Mute, wrap, D-Pad) |
+| Network | Tài nguyên app `200`/`304`; **không** request file nhạc ⇒ **không 404** |
+
+### 4) Tốc độ rắn (Classic) — điểm 0 vs điểm cao
+
+Đo bằng bọc `SnakeLogic.step` ghi mốc `performance.now()`, lấy **median** khoảng cách bước, nhóm theo điểm (501 bước):
+
+| Điểm | 0 | 1 | 5 | **10** | 15 | 17 | 20 | 24 | 26 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **ms/bước** | **110.0** | 106.3 | 94.4 | **79.9** | 66.3 | 60.8 | 63.2 | 62.6 | 64.3 |
+
+- **Điểm 0 = `110.0 ms/bước`** (đúng kỳ vọng ≈110 ms ≈ 9 bước/giây; bản cũ 140 ms ⇒ **nhanh hơn ~21 %**).
+- **Điểm cao nhanh hơn rõ rệt:** điểm 10 → **79.9 ms**, và **chạm sàn ~62 ms** từ khoảng điểm 16–17 (đúng `speedFor = max(minSpeed, speed − score×3)`).
+- **PASS**.
+
+### 5) Không hồi quy Sprint 3
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| Wrap 4 cạnh (bấm D-Pad thật) | Run ngang/dọc lớn nhất **≤ 2.96 ô** ≈ đúng thân rắn (3 ô) ⇒ **không vệt kéo dài**; 4 ảnh: `t010_wrap_right/top/left/bottom.png` |
+| D-Pad mobile | `Phải (1,0)` → `Trên (0,-1)` → `Trái (-1,0)` → `Dưới (0,1)` — **4/4 đúng**; 4 nút chức năng hiện diện |
+| Menu / high score | 3 nút chọn màn, menu ẩn khi vào game — nguyên vẹn |
+
+### 6) Test tự động (regression)
+
+| Lệnh | Kết quả |
+| --- | --- |
+| `node --check` (7 file JS) | **OK** (exit 0) |
+| `node test/logic.test.js` | **53/53 pass**, `ALL TESTS PASSED` (exit 0) |
+| `node test/qa.test.js` | **16/16 edge pass, 0 defect**, `ALL QA TESTS PASSED` (exit 0) |
+
+### 7) GitHub & Vercel (DevOps)
+
+| Hạng mục | Giá trị |
+| --- | --- |
+| Commit message | `fix: audible mobile audio (louder + iOS unlock) and faster start speed` |
+| **Commit hash** | **`5e1cb5b6191168e45a2c23f60c31ae8c53917f1c`** (short `5e1cb5b`) — 8 file, +483 / −44 |
+| Nhánh / Push | `main`, `804fd05..5e1cb5b main -> main`; `git ls-remote` khớp local |
+| **GitHub URL** | https://github.com/PhuocThanh22/snak |
+| **Vercel Production URL** | **https://test-lime-seven-18.vercel.app** |
+| Deployment ID | `dpl_6HcbkCCm8BEB3eN9zVbS15GGiTyQ` — `readyState = READY` |
+| URL trực tiếp / Inspector | https://test-qog1pynr2-phuoc-thanh.vercel.app · https://vercel.com/phuoc-thanh/test/6HcbkCCm8BEB3eN9zVbS15GGiTyQ |
+| Kiểm chứng production | `/` 200 (4925 B: `audioHint`, `bgmBtn`, `pad`); `/snake/audio.js` 200 (15830 B: `muted ? 0 : 0.9`, `bgmGain.gain.value = 0.5`, `UNLOCK_EVENTS`, `createBufferSource`); `/snake/levels.js` 200 (3527 B: `speed: 110`, `minSpeed: 62`) |
+| ⚠️ Cảnh báo | Deployment bật **Vercel Authentication (Deployment Protection)** → cần đăng nhập Vercel cho URL deployment trực tiếp; alias production truy cập công khai OK |
+
+### Kết luận Sprint 4
+
+- **QA PASS toàn bộ:** âm thanh trên điện thoại **đã nghe được thật** (**peak `0.3130`**, cũ `0.0196` → **×16**; **không clip**), SFX ăn mồi có tín hiệu (**27/27**), **BGM bật mặc định + Mute hoạt động**, **0 lỗi Console**, tốc độ vào màn **110 ms** và **nhanh dần rõ rệt** tới sàn 62 ms, **không hồi quy Sprint 3**.
+- Regression: `node --check` 7 file JS OK; `logic.test.js` **53/53**; `qa.test.js` **16/16**.
+- **Hành động:** **T-010 = `Done`**; **T-009 = `QA Pass`** và **đề xuất Agent 1 duyệt `Done`** (Agent 1 giữ quyền quyết định cuối cùng). Bằng chứng ảnh: `t010_wrap_right.png`, `t010_wrap_top.png`, `t010_wrap_left.png`, `t010_wrap_bottom.png`.
+
+### Duyệt cuối của Agent 1 (Sprint 4 — 2026-10-17)
+
+- **T-009 = `Done`**, **T-010 = `Done`** (Agent 1 đã xác minh độc lập — xem dòng nhật ký cuối).
+- **Commit bàn giao:** `5e1cb5b` — `fix: audible mobile audio (louder + iOS unlock) and faster start speed`.
+- **GitHub:** https://github.com/PhuocThanh22/snak (nhánh `main`).
+- **Vercel Production:** https://test-lime-seven-18.vercel.app
+- **Xác minh độc lập trên production (Agent 1):** `peak audio = 0.3001` (trước `0.0196`, **×15**), `RMS = 0.1011`, **0 console message**; `snake/audio.js` phục vụ đúng bản mới (`master 0.9`, `bgmGain 0.5`, `UNLOCK_EVENTS`, `createBufferSource`); `snake/levels.js` (`speed 110`, `minSpeed 62`).
