@@ -14,6 +14,17 @@
  *   - Trạng thái bật/tắt lưu ở localStorage (`snake:bgm`).
  *   - Nhạc chỉ bắt đầu SAU tương tác đầu tiên (autoplay policy).
  *
+ * ÂM LƯỢNG + UNLOCK MOBILE (SPRINT 4):
+ *   - Khách báo KHÔNG NGHE ĐƯỢC trên điện thoại. Nguyên nhân: biên độ quá nhỏ
+ *     (master 0.5 × bgmGain 0.16 × vol 0.11 ≈ 0.009 ≈ −34 dBFS). Nay tăng:
+ *     master ≈ 0.9, bgmGain ≈ 0.5, vol melody/bass/hat và SFX (xem từng hàm)
+ *     → peak BGM ≈ 0.15–0.25.
+ *   - UNLOCK: gắn nhiều sự kiện (pointerdown/touchstart/touchend/mousedown/
+ *     click/keydown) + `visibilitychange`; phát 1 buffer IM LẶNG 1 sample ngay
+ *     trong gesture (khoá iOS), `resume()` lại ở MỖI gesture tới khi `running`.
+ *   - `tone()`/`blip()` tự `resume()` nếu đang `suspended`.
+ *   - `onStateChange(cb)` báo trạng thái để UI hiện gợi ý "Chạm để bật âm thanh".
+ *
  * Export UMD:
  *   - Trình duyệt: biến toàn cục `SnakeAudio`
  *   - Node:        module.exports (API vẫn tồn tại, không phát tiếng vì
@@ -69,7 +80,8 @@
     if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = muted ? 0 : 0.5;
+    // SPRINT 4: tăng từ 0.5 → 0.9 cho đủ nghe trên loa điện thoại.
+    master.gain.value = muted ? 0 : 0.9;
     master.connect(ctx.destination);
     return ctx;
   }
@@ -128,26 +140,27 @@
 
   // ---- Các hiệu ứng cụ thể --------------------------------------------------
 
+  // SPRINT 4: âm lượng SFX tăng để nghe rõ trên loa điện thoại.
   /** Ăn mồi: blip ngắn đi lên. */
   function playEat() {
-    tone({ type: 'square', freq: 520, freqEnd: 960, dur: 0.12, vol: 0.28 });
+    tone({ type: 'square', freq: 520, freqEnd: 960, dur: 0.12, vol: 0.4 });
   }
 
   /** Qua màn: hợp âm rải đi lên (arpeggio). */
   function playLevelUp() {
-    tone({ type: 'triangle', freq: 523.25, dur: 0.13, vol: 0.22, delay: 0.0 });
-    tone({ type: 'triangle', freq: 659.25, dur: 0.13, vol: 0.22, delay: 0.1 });
-    tone({ type: 'triangle', freq: 880.0, dur: 0.2, vol: 0.24, delay: 0.2 });
+    tone({ type: 'triangle', freq: 523.25, dur: 0.13, vol: 0.34, delay: 0.0 });
+    tone({ type: 'triangle', freq: 659.25, dur: 0.13, vol: 0.34, delay: 0.1 });
+    tone({ type: 'triangle', freq: 880.0, dur: 0.2, vol: 0.37, delay: 0.2 });
   }
 
   /** Di chuyển: tick rất nhẹ (tuỳ chọn). */
   function playMove() {
-    tone({ type: 'sine', freq: 220, dur: 0.035, vol: 0.05 });
+    tone({ type: 'sine', freq: 220, dur: 0.035, vol: 0.12 });
   }
 
   /** Game Over: trượt xuống. */
   function playGameOver() {
-    tone({ type: 'sawtooth', freq: 340, freqEnd: 90, dur: 0.55, vol: 0.3 });
+    tone({ type: 'sawtooth', freq: 340, freqEnd: 90, dur: 0.55, vol: 0.45 });
   }
 
   // ---- Mute -----------------------------------------------------------------
@@ -155,7 +168,8 @@
   function setMuted(value) {
     muted = !!value;
     saveMuted(muted);
-    if (master) master.gain.value = muted ? 0 : 0.5;
+    // SPRINT 4: mức mở tiếng khớp `ensureContext()` (0.9).
+    if (master) master.gain.value = muted ? 0 : 0.9;
     return muted;
   }
 
@@ -224,7 +238,8 @@
     if (!c) return null;
     if (!bgmGain) {
       bgmGain = c.createGain();
-      bgmGain.gain.value = 0.16;
+      // SPRINT 4: tăng từ 0.16 → 0.5 cho đủ nghe.
+      bgmGain.gain.value = 0.5;
       bgmGain.connect(master);
     }
     return bgmGain;
@@ -234,6 +249,14 @@
   function blip(freq, time, dur, type, vol, dest) {
     var c = ctx;
     if (!c) return;
+    // Tự resume nếu đang bị treo (một số máy Android/iOS).
+    if (c.state === 'suspended' && typeof c.resume === 'function') {
+      try {
+        c.resume();
+      } catch (e) {
+        /* bỏ qua */
+      }
+    }
     var osc = c.createOscillator();
     var g = c.createGain();
     osc.type = type;
@@ -251,14 +274,15 @@
     var g = ensureBgmGain();
     if (!g) return;
 
+    // SPRINT 4: âm lượng từng bè tăng (melody 0.11→0.32, bass 0.16→0.42, hat 0.025→0.10).
     var mel = BGM_MELODY[step % BGM_MELODY.length];
-    if (mel && NOTE[mel]) blip(NOTE[mel], time, BGM_STEP_DUR * 0.9, 'square', 0.11, g);
+    if (mel && NOTE[mel]) blip(NOTE[mel], time, BGM_STEP_DUR * 0.9, 'square', 0.32, g);
 
     if (step % 2 === 0) {
       var bass = BGM_BASS[(step / 2) % BGM_BASS.length];
-      if (bass && NOTE[bass]) blip(NOTE[bass], time, BGM_STEP_DUR * 1.7, 'triangle', 0.16, g);
+      if (bass && NOTE[bass]) blip(NOTE[bass], time, BGM_STEP_DUR * 1.7, 'triangle', 0.42, g);
     } else {
-      blip(3200, time, 0.03, 'square', 0.025, g); // hat nhẹ
+      blip(3200, time, 0.03, 'square', 0.1, g); // hat nhẹ
     }
   }
 
@@ -382,8 +406,123 @@
     return bgmEl;
   }
 
+  // ---- Mở khoá audio trên mobile (SPRINT 4 — điểm yếu chính trên điện thoại) -
+
+  var UNLOCK_EVENTS = ['pointerdown', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+  var unlockInstalled = false;
+  var unlocked = false;
+  var stateListeners = [];
+
+  function getState() {
+    return ctx ? ctx.state : 'none';
+  }
+
+  function isAudioRunning() {
+    return !!ctx && ctx.state === 'running';
+  }
+
+  /** Đăng ký callback nhận trạng thái audio: cb(running, state). */
+  function onStateChange(cb) {
+    if (typeof cb === 'function') stateListeners.push(cb);
+    return stateListeners.length;
+  }
+
+  function notifyState(running) {
+    if (running) unlocked = true;
+    for (var i = 0; i < stateListeners.length; i++) {
+      try {
+        stateListeners[i](!!running, getState());
+      } catch (e) {
+        /* bỏ qua lỗi từ listener */
+      }
+    }
+  }
+
+  /**
+   * Phát 1 buffer IM LẶNG (1 sample) NGAY trong handler gesture.
+   * Đây là "chìa khoá" mở khoá phần cứng audio trên iOS Safari.
+   */
+  function playSilentBuffer(c) {
+    try {
+      var buf = c.createBuffer(1, 1, Math.max(8000, c.sampleRate || 44100));
+      var src = c.createBufferSource();
+      src.buffer = buf;
+      src.connect(c.destination);
+      if (typeof src.start === 'function') src.start(0);
+    } catch (e) {
+      /* bỏ qua */
+    }
+  }
+
+  /** Thử resume() + mở khoá, rồi báo trạng thái qua `onStateChange`. */
+  function attemptUnlock() {
+    var c = ensureContext();
+    if (!c) return;
+
+    if (c.state === 'running') {
+      notifyState(true);
+      return;
+    }
+
+    playSilentBuffer(c);
+
+    var res = null;
+    try {
+      res = typeof c.resume === 'function' ? c.resume() : null;
+    } catch (e) {
+      res = null;
+    }
+
+    function report() {
+      notifyState(c.state === 'running');
+    }
+
+    if (res && typeof res.then === 'function') {
+      res.then(report, report);
+    } else if (typeof root.setTimeout === 'function') {
+      root.setTimeout(report, 120);
+    } else {
+      report();
+    }
+  }
+
+  function onGesture() {
+    attemptUnlock();
+  }
+
+  function onVisibility() {
+    if (root.document && root.document.visibilityState === 'visible') attemptUnlock();
+  }
+
+  /**
+   * Gắn listener mở khoá trên NHIỀU sự kiện + `visibilitychange` (idempotent).
+   * An toàn khi không có `document` (Node).
+   */
+  function unlockAudio() {
+    if (unlockInstalled) return;
+    var doc = root && root.document;
+    if (!doc || typeof doc.addEventListener !== 'function') return;
+
+    unlockInstalled = true;
+    for (var i = 0; i < UNLOCK_EVENTS.length; i++) {
+      try {
+        doc.addEventListener(UNLOCK_EVENTS[i], onGesture, { passive: true });
+      } catch (e) {
+        doc.addEventListener(UNLOCK_EVENTS[i], onGesture, false);
+      }
+    }
+    doc.addEventListener('visibilitychange', onVisibility);
+  }
+
+  // Tự gắn ngay khi có DOM (trình duyệt); ở Node thì bỏ qua.
+  if (root && root.document) unlockAudio();
+
   return {
     initAudio: initAudio,
+    getState: getState,
+    isAudioRunning: isAudioRunning,
+    onStateChange: onStateChange,
+    unlockAudio: unlockAudio,
     playEat: playEat,
     playLevelUp: playLevelUp,
     playMove: playMove,

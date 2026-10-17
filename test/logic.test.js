@@ -463,6 +463,64 @@ test('levels.js: Classic wrap; Boxed không wrap; Maze có chướng ngại vậ
   assert.ok(maze.speed < boxed.speed, 'Maze phải nhanh hơn Boxed');
 });
 
+test('levels.js (Sprint 4): tốc độ vào màn nhanh hơn, có sàn riêng từng màn', () => {
+  const classic = Levels.getLevel(1);
+  const boxed = Levels.getLevel(2);
+  const maze = Levels.getLevel(3);
+
+  // Giá trị mới theo SPEC T-009.
+  assert.strictEqual(classic.speed, 110);
+  assert.strictEqual(boxed.speed, 100);
+  assert.strictEqual(maze.speed, 90);
+
+  // Sàn ms/bước riêng từng màn.
+  assert.strictEqual(classic.minSpeed, 62);
+  assert.strictEqual(boxed.minSpeed, 58);
+  assert.strictEqual(maze.minSpeed, 55);
+
+  // Vẫn giữ đúng tinh thần "càng về sau càng nhanh".
+  assert.ok(classic.speed > boxed.speed, 'Classic chậm hơn Boxed');
+  assert.ok(boxed.speed > maze.speed, 'Boxed chậm hơn Maze');
+  assert.ok(boxed.minSpeed < classic.minSpeed, 'Sàn Boxed nhanh hơn Classic');
+  assert.ok(maze.minSpeed < boxed.minSpeed, 'Sàn Maze nhanh hơn Boxed');
+
+  // Vào màn phải NHANH HƠN bản cũ (140 / 122 / 104).
+  assert.ok(classic.speed < 140, 'Classic phải nhanh hơn bản cũ');
+  assert.ok(boxed.speed < 122, 'Boxed phải nhanh hơn bản cũ');
+  assert.ok(maze.speed < 104, 'Maze phải nhanh hơn bản cũ');
+});
+
+test('levels.js (Sprint 4): ramp tốc độ = base - score*3, kẹp sàn (mô phỏng game.js)', () => {
+  const ramp = (lv, score) => Math.max(lv.minSpeed, lv.speed - score * 3);
+  const classic = Levels.getLevel(1);
+  const boxed = Levels.getLevel(2);
+  const maze = Levels.getLevel(3);
+
+  assert.strictEqual(ramp(classic, 0), 110);
+  assert.strictEqual(ramp(classic, 16), 62); // 110 - 48 = 62 → chạm sàn
+  assert.strictEqual(ramp(classic, 100), 62); // kẹp sàn
+
+  assert.strictEqual(ramp(boxed, 0), 100);
+  assert.strictEqual(ramp(boxed, 14), 58); // 100 - 42 = 58 → chạm sàn
+  assert.strictEqual(ramp(boxed, 999), 58);
+
+  assert.strictEqual(ramp(maze, 0), 90);
+  assert.strictEqual(ramp(maze, 11), 57); // 90 - 33
+  assert.strictEqual(ramp(maze, 12), 55); // 90 - 36 = 54 < sàn 55 → kẹp
+  assert.strictEqual(ramp(maze, 999), 55);
+
+  // Đơn điệu (ms không tăng) và luôn >= sàn.
+  for (const lv of [classic, boxed, maze]) {
+    let prev = Infinity;
+    for (let s = 0; s <= 200; s++) {
+      const v = ramp(lv, s);
+      assert.ok(v >= lv.minSpeed, 'tốc độ không được nhỏ hơn sàn');
+      assert.ok(v <= prev, 'tốc độ phải nhanh dần đều (ms không tăng)');
+      prev = v;
+    }
+  }
+});
+
 test('levels.js: chướng ngại vật Maze nằm trong lưới, không trùng thân rắn xuất phát', () => {
   const maze = Levels.getLevel(3);
   const startSnake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
@@ -708,6 +766,28 @@ test('audio.js (Sprint 3): API BGM đầy đủ và an toàn ở Node', () => {
     Audio.toggleBgm();
     Audio.stopBgm();
   });
+});
+
+// ---------------------------------------------------------------------------
+// 14) SPRINT 4 — API mở khoá audio mobile + âm lượng (audio.js)
+// ---------------------------------------------------------------------------
+
+test('audio.js (Sprint 4): API unlock + trạng thái đầy đủ và an toàn ở Node', () => {
+  const fns = ['unlockAudio', 'getState', 'isAudioRunning', 'onStateChange'];
+  for (const name of fns) {
+    assert.strictEqual(typeof Audio[name], 'function', 'thiếu hàm ' + name);
+  }
+
+  // Node không có AudioContext / document → các hàm phải an toàn, không ném lỗi.
+  assert.doesNotThrow(() => {
+    Audio.unlockAudio();
+    assert.strictEqual(Audio.getState(), 'none');
+    assert.strictEqual(Audio.isAudioRunning(), false);
+  });
+
+  assert.strictEqual(typeof Audio.onStateChange, 'function');
+  assert.strictEqual(Audio.onStateChange(function () {}), 1, 'đăng ký listener trả về số lượng');
+  assert.strictEqual(Audio.onStateChange(null), 1, 'listener không hợp lệ bị bỏ qua');
 });
 
 run();

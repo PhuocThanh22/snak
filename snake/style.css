@@ -197,6 +197,38 @@ body {
   color: var(--muted);
 }
 
+/* ---- Gợi ý bật âm thanh (SPRINT 4) --------------------------------------- */
+
+.audio-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: #ffe9a8;
+  background: rgba(10, 16, 30, 0.9);
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  border-radius: 999px;
+  box-shadow: 0 0 14px rgba(255, 209, 102, 0.35);
+  pointer-events: none;
+  animation: audioHintPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes audioHintPulse {
+  0%,
+  100% {
+    opacity: 0.78;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* ---- Menu chọn màn -------------------------------------------------------- */
 
 .menu {

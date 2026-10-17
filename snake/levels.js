@@ -6,10 +6,11 @@
  *   - Trình duyệt: biến toàn cục `SnakeLevels`.
  *
  * Mỗi màn cung cấp:
- *   { id, key, name, description, wrap, obstacles, speed, accent, accent2, food }
+ *   { id, key, name, description, wrap, obstacles, speed, minSpeed, accent, accent2, food }
  *   - wrap:      đi xuyên biên?
  *   - obstacles: mảng ô {x,y} chướng ngại vật tĩnh
  *   - speed:     số ms mỗi bước ở điểm 0 (nhỏ hơn = nhanh hơn)
+ *   - minSpeed:  sàn ms/bước (nhanh nhất có thể khi điểm cao) — SPRINT 4
  *   - accent/accent2/food: bảng màu Neon để đổi màu theo màn
  */
 (function (root, factory) {
@@ -59,7 +60,9 @@
       description: 'Không tường — đi xuyên biên',
       wrap: true,
       obstacles: [],
-      speed: 140,
+      // SPRINT 4: vào màn nhanh hơn (140 → 110), sàn 62ms.
+      speed: 110,
+      minSpeed: 62,
       accent: '#39ff14',
       accent2: '#0aff9d',
       food: '#ff2e88'
@@ -71,7 +74,9 @@
       description: 'Tường bao 4 cạnh',
       wrap: false,
       obstacles: [],
-      speed: 122,
+      // SPRINT 4: vào màn nhanh hơn (122 → 100), sàn 58ms.
+      speed: 100,
+      minSpeed: 58,
       accent: '#00e5ff',
       accent2: '#4d7cff',
       food: '#ffd166'
@@ -83,7 +88,9 @@
       description: 'Chướng ngại vật ở giữa — nhanh hơn',
       wrap: false,
       obstacles: mazeObstacles(),
-      speed: 104,
+      // SPRINT 4: vào màn nhanh hơn (104 → 90), sàn 55ms.
+      speed: 90,
+      minSpeed: 55,
       accent: '#ff2e88',
       accent2: '#b14bff',
       food: '#39ff14'

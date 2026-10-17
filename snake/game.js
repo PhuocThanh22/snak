@@ -54,6 +54,7 @@
   var bgmBtn = document.getElementById('bgmBtn');
   var bgmAudioEl = document.getElementById('bgm');
   var padEl = document.getElementById('pad');
+  var audioHintEl = document.getElementById('audioHint');
 
   // ---- Kích thước vẽ (hỗ trợ màn hình mật độ cao) ---------------------------
 
@@ -73,7 +74,7 @@
   var HS_KEY = 'snake:highscores';
   var FALLBACK_LEVEL = {
     id: 1, key: 'classic', name: 'Classic',
-    wrap: false, obstacles: [], speed: 140,
+    wrap: false, obstacles: [], speed: 110, minSpeed: 62,
     accent: '#39ff14', accent2: '#0aff9d', food: '#ff2e88'
   };
 
@@ -100,7 +101,7 @@
 
   function toConfig(id) {
     if (Levels) return Levels.createGameConfig(id);
-    return { wrap: false, obstacles: [], level: id, speed: 140 };
+    return { wrap: false, obstacles: [], level: id, speed: 110 };
   }
 
   function colors() {
@@ -111,9 +112,14 @@
     return lv ? lv.id + ' · ' + lv.name : '—';
   }
 
+  /**
+   * SPRINT 4: vào màn nhanh hơn (bớt ì) nhưng vẫn nhanh dần đều.
+   * `base - score * 3`, kẹp sàn riêng từng màn (`minSpeed`).
+   */
   function speedFor(score) {
-    var base = currentLevel && currentLevel.speed ? currentLevel.speed : 140;
-    return Math.max(55, base - score * 4);
+    var base = currentLevel && currentLevel.speed ? currentLevel.speed : 110;
+    var floor = currentLevel && currentLevel.minSpeed ? currentLevel.minSpeed : 55;
+    return Math.max(floor, base - score * 3);
   }
 
   function currentBest() {
@@ -150,8 +156,11 @@
   function syncMuteButton() {
     if (!muteBtn) return;
     var m = Audio ? Audio.isMuted() : false;
-    muteBtn.textContent = m ? '🔇 Đang tắt tiếng' : '🔊 Âm thanh';
+    // SPRINT 4: hiển thị rõ BẬT/TẮT.
+    muteBtn.textContent = m ? '🔇 Âm thanh: TẮT' : '🔊 Âm thanh: BẬT';
     muteBtn.setAttribute('aria-pressed', m ? 'true' : 'false');
+    var padMute = document.querySelector('[data-action="mute"]');
+    if (padMute) padMute.classList.toggle('is-off', m);
   }
 
   function syncBgmButton() {
@@ -162,6 +171,40 @@
     }
     var padBgm = document.querySelector('[data-action="bgm"]');
     if (padBgm) padBgm.classList.toggle('is-off', !on);
+  }
+
+  // ---- Audio: gợi ý "Chạm để bật âm thanh" + mở khoá (SPRINT 4) -------------
+
+  function showAudioHint() {
+    if (audioHintEl) audioHintEl.style.display = 'block';
+  }
+
+  function hideAudioHint() {
+    if (audioHintEl) audioHintEl.style.display = 'none';
+  }
+
+  /**
+   * Gọi trong MỌI handler tương tác: khởi tạo + thử mở khoá audio.
+   * Nếu đã `running` thì bắt đầu nhạc nền ngay (autoplay policy: chỉ sau gesture).
+   */
+  function kickAudio() {
+    if (!Audio) return;
+    Audio.initAudio();
+    if (typeof Audio.unlockAudio === 'function') Audio.unlockAudio();
+    if (typeof Audio.isAudioRunning === 'function' && Audio.isAudioRunning()) {
+      hideAudioHint();
+      if (typeof Audio.startBgm === 'function') Audio.startBgm();
+    }
+  }
+
+  /** Callback nhận trạng thái audio từ audio.js (được gọi cả khi retry). */
+  function onAudioState(running) {
+    if (running) {
+      hideAudioHint();
+      if (Audio && typeof Audio.startBgm === 'function') Audio.startBgm();
+    } else if (!inMenu) {
+      showAudioHint();
+    }
   }
 
   function toggleBgm() {
@@ -676,14 +719,13 @@
       return;
     }
     if (action === 'mute') {
-      if (Audio) {
-        Audio.initAudio();
-        Audio.toggleMute();
-      }
+      kickAudio();
+      if (Audio) Audio.toggleMute();
       syncMuteButton();
       return;
     }
     if (action === 'bgm') {
+      kickAudio();
       toggleBgm();
       return;
     }
@@ -754,20 +796,25 @@
 
   // ---- Khởi tạo AudioContext + BGM ở tương tác đầu tiên ---------------------
 
+  // ---- Audio: gắn mở khoá trên NHIỀU sự kiện + BGM sau gesture (SPRINT 4) ----
+
+  var GESTURE_EVENTS = ['pointerdown', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+
   function firstInteraction() {
-    if (Audio) {
-      Audio.initAudio();
-      if (typeof Audio.startBgm === 'function') Audio.startBgm();
-    }
-    document.removeEventListener('pointerdown', firstInteraction);
-    document.removeEventListener('keydown', firstInteraction);
+    kickAudio();
+  }
+
+  for (var ge = 0; ge < GESTURE_EVENTS.length; ge++) {
+    document.addEventListener(GESTURE_EVENTS[ge], firstInteraction, { passive: true });
   }
 
   document.addEventListener('keydown', function (event) {
-    firstInteraction();
     onKeyDown(event);
   });
-  document.addEventListener('pointerdown', firstInteraction);
+
+  if (Audio && typeof Audio.onStateChange === 'function') {
+    Audio.onStateChange(onAudioState);
+  }
 
   if (bgmAudioEl && Audio && typeof Audio.attachBgmElement === 'function') {
     Audio.attachBgmElement(bgmAudioEl);
@@ -778,17 +825,15 @@
 
   if (muteBtn) {
     muteBtn.addEventListener('click', function () {
-      if (Audio) {
-        Audio.initAudio();
-        Audio.toggleMute();
-      }
+      kickAudio();
+      if (Audio) Audio.toggleMute();
       syncMuteButton();
     });
   }
 
   if (bgmBtn) {
     bgmBtn.addEventListener('click', function () {
-      if (Audio) Audio.initAudio();
+      kickAudio();
       toggleBgm();
     });
   }
@@ -798,10 +843,7 @@
     for (var i = 0; i < levelButtons.length; i++) {
       (function (btn) {
         btn.addEventListener('click', function () {
-          if (Audio) {
-            Audio.initAudio();
-            if (typeof Audio.startBgm === 'function') Audio.startBgm();
-          }
+          kickAudio();
           startGame(parseInt(btn.getAttribute('data-level'), 10));
         });
       })(levelButtons[i]);
